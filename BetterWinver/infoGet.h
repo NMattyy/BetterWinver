@@ -1,3 +1,6 @@
+#ifndef INFOGET_H
+#define INFOGET_H
+
 #include <windows.h>
 #include <winreg.h>
 #include <lmcons.h>
@@ -107,6 +110,9 @@ string userGet(){
 //Settings
 
 bool isDarkModeEnabled() {
+    if (build < 22000){
+        return false;
+    }
     HKEY hKey;
     DWORD value = 1; //1 Light, 0 Dark;
     DWORD valueSize = sizeof(value);
@@ -118,3 +124,24 @@ bool isDarkModeEnabled() {
     
     return (value == 0);
 }
+
+string currentLanguage(){
+    HKEY hKey;
+
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        
+        char buildBuffer[256];
+        DWORD bufferSize = sizeof(buildBuffer);
+
+        if (RegQueryValueExA(hKey, "InstallLanguage", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return string(buildBuffer);
+        }
+        RegCloseKey(hKey);
+
+    } else {
+        return "0409"; //English-US
+    }
+}
+
+#endif
