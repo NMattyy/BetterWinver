@@ -27,3 +27,5 @@
 
 ## ℹ️ Crediti
 - [@Microsoft](https://github.com/microsoft) per Microsoft Windows
+
+  <meta name="google-site-verification" content="Rk593i61iX0j9T1fLFqW5uktGWzvha5m_kJ9EC_p6Jw" />
