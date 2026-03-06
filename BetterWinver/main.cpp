@@ -6,13 +6,13 @@
 #include <shlwapi.h>
 
 #include "infoGet.h"
+#include "translation.h"
 
 using namespace Gdiplus;
 using namespace std;
 
 HFONT hFont, hFontBold;
-string buildStr = buildGet();
-int compCheck = stoi(buildStr);
+int compCheck = stoi(buildGet());
 int resourceNumber;
 
 IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType) {
@@ -28,7 +28,7 @@ IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType)
     return SHCreateMemStream((BYTE*)pBuffer, dwSize);
 }
 
-LRESULT CALLBACK gestioneFinestra(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     static COLORREF coloreSfondo = RGB(255, 255, 255);
     static COLORREF coloreTesto = RGB(0, 0, 0);
     static HBRUSH hBrushSfondo = NULL;
@@ -98,7 +98,6 @@ LRESULT CALLBACK gestioneFinestra(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     RectF destRect(30.0f, 15.0f, aspectWidth, aspectHeight);
                     graphics.DrawImage(imgLogo, destRect, 0, 0, (REAL)imgLogo->GetWidth(), (REAL)imgLogo->GetHeight(), UnitPixel, NULL);
                 }
-            //Windows 10 beta support
             } else {
                 HMODULE hLib = GetModuleHandle("basebrd.dll");
                 if (!hLib) hLib = LoadLibraryEx("C:\\Windows\\Branding\\Basebrd\\basebrd.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
@@ -235,7 +234,7 @@ LRESULT CALLBACK gestioneFinestra(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_DESTROY: {
             if (hBrushSfondo) DeleteObject(hBrushSfondo);
-            if (imgLogo) delete imgLogo; // 
+            if (imgLogo) delete imgLogo; 
             if (hFont) DeleteObject(hFont);
             PostQuitMessage(0);
             break;
@@ -249,8 +248,8 @@ LRESULT CALLBACK gestioneFinestra(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     SetProcessDPIAware();
-    if (compCheck < 22000) {
-        MessageBox(NULL, "BetterWinver attualmente supporta solo Windows 11 (build 22000 e successive)", "Attenzione: versione incompatibile", MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
+    if (compCheck < 9200) {
+        MessageBox(NULL, string_1().c_str(), string_2().c_str(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
         return 0;
     }
 
@@ -259,26 +258,20 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
     WNDCLASS wc = {0};
-    wc.lpfnWndProc = gestioneFinestra;
+    wc.lpfnWndProc = windowManager;
     wc.hInstance = hInst;
     wc.hbrBackground = NULL;
     wc.lpszClassName = "BetterWinver";
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("BetterWinver", "Informazioni su Windows - BetterWinver", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 480, 520, NULL, NULL, hInst, NULL);
+    HWND hwnd = CreateWindow("BetterWinver", string_3().c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 480, 520, NULL, NULL, hInst, NULL);
 
     hFont = CreateFont(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, VARIABLE_PITCH, "Segoe UI");
-
-    string mainText = string("Microsoft ") + OSGet() + " " + commercialVersionGet() + "\n"
-                      "Versione NT " + ntGet() + " (build SO " + buildStr + ")\n" + 
-                      (char)169 + " Microsoft Corporation. Tutti i diritti riservati.\n\n" + 
-                      "Il sistema operativo " + OSGet() + " e la relativa interfaccia utente sono protetti da marchi e da altri diritti di propriet\xE0 intelletuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche";
     
-    HWND hBody = CreateWindow("STATIC", mainText.c_str(), WS_VISIBLE | WS_CHILD, 30, 115, 420, 150, hwnd, NULL, hInst, NULL);
+    HWND hBody = CreateWindow("STATIC", string_4().c_str(), WS_VISIBLE | WS_CHILD, 30, 115, 420, 150, hwnd, NULL, hInst, NULL);
     SendMessage(hBody, WM_SETFONT, (WPARAM)hFont, TRUE);
 
-    string userInfo = "Prodotto concesso in licenza a:\n" + userGet();
-    HWND hUser = CreateWindow("STATIC", userInfo.c_str(), WS_VISIBLE | WS_CHILD, 30, 330, 420, 80, hwnd, NULL, hInst, NULL);
+    HWND hUser = CreateWindow("STATIC", string_5().c_str(), WS_VISIBLE | WS_CHILD, 30, 330, 420, 80, hwnd, NULL, hInst, NULL);
     SendMessage(hUser, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     HWND hButton = CreateWindow("BUTTON", "OK", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW, 370, 440, 80, 25, hwnd, (HMENU)1, hInst, NULL);
