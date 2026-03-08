@@ -1,3 +1,4 @@
+//BetterWinver 1.2.0
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -8,15 +9,40 @@
 
 using namespace std;
 
+extern string NT;
+extern string build;
+extern string OSName;
+extern string commercialVersion;
+extern string user;
+extern int compCheck;
+extern bool isDarkModeEnabled;
+
 //Placeholders
 
-string ntGet(){
-    OSVERSIONINFOEX info;
-    ZeroMemory(&info, sizeof(OSVERSIONINFOEX));
-    info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    GetVersionEx((LPOSVERSIONINFO)&info);
+string ntGet() {
+    HKEY hKey;
+    DWORD major = 0;
+    DWORD minor = 0;
+    
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD size = sizeof(DWORD);
 
-    return to_string(info.dwMajorVersion) + "." + to_string(info.dwMinorVersion);
+        if (RegQueryValueExA(hKey, "CurrentMajorVersionNumber", NULL, NULL, (LPBYTE)&major, &size) == ERROR_SUCCESS) {
+            RegQueryValueExA(hKey, "CurrentMinorVersionNumber", NULL, NULL, (LPBYTE)&minor, &size);
+        }
+
+        if (major == 0) {
+            char buildBuffer[256];
+            DWORD bufferSize = sizeof(buildBuffer);
+
+            if (RegQueryValueExA(hKey, "CurrentVersion", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+                RegCloseKey(hKey);
+                return string(buildBuffer);
+            }
+        }   
+        RegCloseKey(hKey);  
+    }
+    return to_string(major) + "." + to_string(minor);
 }
 
 string buildGet() {
@@ -44,7 +70,6 @@ string buildGet() {
     } 
     return buildNumber;
 }
-int build = stoi(buildGet());
 
 string OSGet() {
     HKEY hKey;
@@ -52,7 +77,7 @@ string OSGet() {
         char buildBuffer[256];
         DWORD bufferSize = sizeof(buildBuffer);
 
-        if (build < 22000){
+        if (compCheck < 22000){
             if (RegQueryValueExA(hKey, "ProductName", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
                 RegCloseKey(hKey);
                 return string(buildBuffer);
@@ -60,7 +85,11 @@ string OSGet() {
         } else {
             if (RegQueryValueExA(hKey, "EditionID", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
                 RegCloseKey(hKey);
-                return "Windows 11 " + string(buildBuffer);
+                string name = string(buildBuffer);
+                if (name == "Professional"){
+                    return "Windows 11 Pro";
+                }
+                return "Windows 11 " + name;
             }
         }
         RegCloseKey(hKey);
@@ -69,7 +98,7 @@ string OSGet() {
 }
 
 string commercialVersionGet() {
-    if (build < 19042){
+    if (compCheck < 19042){
         return "";
     }
 
@@ -85,10 +114,9 @@ string commercialVersionGet() {
             return string(buildBuffer);
         }
         RegCloseKey(hKey);
-
-    } else {
-        return "";
     }
+
+    return "";
 }
 
 string userGet(){
@@ -109,10 +137,7 @@ string userGet(){
 
 //Settings
 
-bool isDarkModeEnabled() {
-    if (build < 22000){
-        return false;
-    }
+void DarkModeCheck() {
     HKEY hKey;
     DWORD value = 1; //1 Light, 0 Dark;
     DWORD valueSize = sizeof(value);
@@ -121,8 +146,7 @@ bool isDarkModeEnabled() {
         RegQueryValueExA(hKey, "AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &valueSize);
         RegCloseKey(hKey);
     }
-    
-    return (value == 0);
+    isDarkModeEnabled = (value == 0);
 }
 
 string currentLanguage(){
@@ -138,10 +162,9 @@ string currentLanguage(){
             return string(buildBuffer);
         }
         RegCloseKey(hKey);
-
-    } else {
-        return "0409"; //English-US
     }
+
+    return "0409"; //English-US
 }
 
 #endif
