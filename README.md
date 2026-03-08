@@ -8,7 +8,7 @@
 | BetterWinver è un programma scritto in c++ per Windows 8 x64 e superiori (Pensato per Windows 10 & 11) che mira a ricreare l'applicazione "Informazioni di Windows (Winver)" di Microsoft Windows, migliorandone l'aspetto grafico e il funzionamento utilizzando le API di windows (WIN32). | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Assets/Preview.png?raw=true" width="400"> |
 
 ## Aggiunte future
-//
+Windows 11 Mica effect
 
 ## Sostituzione a Winver
 > [!Warning]
