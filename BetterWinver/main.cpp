@@ -1,3 +1,4 @@
+//BetterWinver 1.2.0
 #include <windows.h>
 #include <dwmapi.h>
 #include <string>
@@ -12,8 +13,15 @@ using namespace Gdiplus;
 using namespace std;
 
 HFONT hFont, hFontBold;
-int compCheck = stoi(buildGet());
-int resourceNumber;
+Bitmap* cachedLogo = nullptr;
+
+string build;
+string OSName;
+string NT;
+string commercialVersion;
+string user;
+int compCheck;
+bool isDarkModeEnabled;
 
 IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType) {
     HRSRC hRsrc = FindResource(hModule, lpName, lpType);
@@ -28,13 +36,62 @@ IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType)
     return SHCreateMemStream((BYTE*)pBuffer, dwSize);
 }
 
+void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEnabled) {
+    if (!hBmpRes) return;
+    if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
+
+    cachedLogo = new Bitmap(bmpWidth, bmpHeight, PixelFormat32bppARGB);
+    Bitmap tempBmp(hBmpRes, NULL);
+    Graphics g(cachedLogo);
+
+    if (compCheck < 10240) {
+        ImageAttributes imgAttr;
+        
+        Color lowGray(200, 200, 200);
+        Color highGray(255, 255, 255);
+        imgAttr.SetColorKey(lowGray, highGray, ColorAdjustTypeBitmap);
+
+        g.DrawImage(&tempBmp, Rect(0, 0, bmpWidth, bmpHeight), 0, 0, bmpWidth, bmpHeight, UnitPixel, &imgAttr);
+        return;
+    }
+
+    //Windows 10
+    Color baseColor = isDarkModeEnabled ? Color(255, 255, 255) : Color(0, 0, 0);
+    Color logoBlue(255, 0, 120, 215);
+
+    for (int y = 0; y < bmpHeight; y++) {
+        for (int x = 0; x < bmpWidth; x++) {
+            Color c;
+            tempBmp.GetPixel(x, y, &c);
+            int r = c.GetR(), g = c.GetG(), b = c.GetB();
+            int brightness = (r + g + b) / 3;
+            int diff = max(r, max(g, b)) - min(r, min(g, b));
+
+            if (diff > 25) { 
+                float alphaFactor = min(1.0f, (float)diff / 25.0f);
+                cachedLogo->SetPixel(x, y, Color((BYTE)(alphaFactor * 255.0f), logoBlue.GetR(), logoBlue.GetG(), logoBlue.GetB()));
+            } else {
+                float alpha = 0;
+                if (brightness < 60) alpha = 255.0f;
+                else if (brightness < 150) alpha = ((150.0f - (float)brightness) / (150.0f - 60.0f)) * 255.0f;
+                cachedLogo->SetPixel(x, y, Color((BYTE)alpha, baseColor.GetR(), baseColor.GetG(), baseColor.GetB()));
+            }
+        }
+    }
+}
+
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     static COLORREF coloreSfondo = RGB(255, 255, 255);
     static COLORREF coloreTesto = RGB(0, 0, 0);
     static HBRUSH hBrushSfondo = NULL;
-    static bool mouseHiglight = false;
-    static Image* imgLogo = NULL;
 
+    static bool mouseHiglight = false;
+
+    static Image* imgLogo = NULL;
+    static HBITMAP hBmpRes = NULL;
+    static int bmpWidth = 0, bmpHeight = 0;
+
+    int resourceNumber;
     if (compCheck >= 10240) {
         resourceNumber = 2123;
     } else { 
@@ -43,25 +100,37 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     switch (msg) {
         case WM_CREATE: {
-            BOOL dark = isDarkModeEnabled();
-            coloreSfondo = dark ? RGB(32, 32, 32) : RGB(255, 255, 255);
-            coloreTesto = dark ? RGB(255, 255, 255) : RGB(0, 0, 0);
+            DarkModeCheck();
+            BOOL useDarkMode = isDarkModeEnabled;
+            coloreSfondo = isDarkModeEnabled ? RGB(32, 32, 32) : RGB(255, 255, 255);
+            coloreTesto = isDarkModeEnabled ? RGB(255, 255, 255) : RGB(0, 0, 0);
             
             if (hBrushSfondo) DeleteObject(hBrushSfondo);
             hBrushSfondo = CreateSolidBrush(coloreSfondo);
-            DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));
+            DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
-            if (compCheck >= 22000) {
-                HMODULE hLib = GetModuleHandle("basebrd.dll");
-                if (!hLib) hLib = LoadLibraryEx("C:\\Windows\\Branding\\Basebrd\\basebrd.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
-                if (hLib) {
+            HMODULE hLib = GetModuleHandle("basebrd.dll");
+            if (!hLib) hLib = LoadLibraryEx("C:\\Windows\\Branding\\Basebrd\\basebrd.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
+
+            if (hLib) {
+                if (compCheck >= 22000) {
                     IStream* pStream = CreateStreamOnResource(hLib, MAKEINTRESOURCE(resourceNumber), "IMAGE");
                     if (pStream) {
                         imgLogo = new Image(pStream);
                         pStream->Release();
                     }
-                }
+            } else {
+            hBmpRes = (HBITMAP)LoadImage(hLib, MAKEINTRESOURCE(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+            if (hBmpRes) {
+                BITMAP bmp;
+                GetObject(hBmpRes, sizeof(BITMAP), &bmp);
+                bmpWidth = bmp.bmWidth;
+                bmpHeight = bmp.bmHeight;
+                
+                bitmapCache(hBmpRes, bmpWidth, bmpHeight, isDarkModeEnabled);
             }
+        }
+    }
             return 0;
         }
 
@@ -73,12 +142,13 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
 
         case WM_SETTINGCHANGE: {
-            BOOL dark = isDarkModeEnabled();
-            coloreSfondo = dark ? RGB(32, 32, 32) : RGB(255, 255, 255);
-            coloreTesto = dark ? RGB(255, 255, 255) : RGB(0, 0, 0);
+            DarkModeCheck();
+            BOOL useDarkMode = isDarkModeEnabled;
+            coloreSfondo = isDarkModeEnabled ? RGB(32, 32, 32) : RGB(255, 255, 255);
+            coloreTesto = isDarkModeEnabled ? RGB(255, 255, 255) : RGB(0, 0, 0);
             if (hBrushSfondo) DeleteObject(hBrushSfondo);
             hBrushSfondo = CreateSolidBrush(coloreSfondo);
-            DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));
+            DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
         }
@@ -86,51 +156,40 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, hBrushSfondo);
+            
+            Graphics graphics(hdc);
+            
+            Color backColor;
+            backColor.SetFromCOLORREF(coloreSfondo);
+            graphics.Clear(backColor);
 
             float aspectWidth = 420.0f;
 
-            if (compCheck >= 22000) {
-                if (imgLogo && imgLogo->GetLastStatus() == Ok) {
-                    float aspectHeight = (aspectWidth / (float)imgLogo->GetWidth()) * (float)imgLogo->GetHeight();
-                    Graphics graphics(hdc);
-                    graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-                    RectF destRect(30.0f, 15.0f, aspectWidth, aspectHeight);
-                    graphics.DrawImage(imgLogo, destRect, 0, 0, (REAL)imgLogo->GetWidth(), (REAL)imgLogo->GetHeight(), UnitPixel, NULL);
-                }
-            } else {
-                HMODULE hLib = GetModuleHandle("basebrd.dll");
-                if (!hLib) hLib = LoadLibraryEx("C:\\Windows\\Branding\\Basebrd\\basebrd.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
-                
-                if (hLib) {
-                    HBITMAP hBmpRes = (HBITMAP)LoadImage(hLib, MAKEINTRESOURCE(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-                    
-                    if (hBmpRes) {
-                        BITMAP bmp;
-                        GetObject(hBmpRes, sizeof(BITMAP), &bmp);
-                        float aspectHeight = (aspectWidth / (float)bmp.bmWidth) * (float)bmp.bmHeight;
+            if (compCheck >= 22000 && imgLogo && imgLogo->GetLastStatus() == Ok) {
+                graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+                float aspectHeight = (aspectWidth / (float)imgLogo->GetWidth()) * (float)imgLogo->GetHeight();
+                graphics.DrawImage(imgLogo, RectF(30.0f, 15.0f, aspectWidth, aspectHeight));
+            } 
+            else if (cachedLogo && cachedLogo->GetLastStatus() == Ok) {
+                graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+                graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+                graphics.SetPixelOffsetMode(PixelOffsetModeHighQuality);
 
-                        HDC hdcMem = CreateCompatibleDC(hdc);
-                        HGDIOBJ hOld = SelectObject(hdcMem, hBmpRes);
+                float aspectHeight = (aspectWidth / (float)cachedLogo->GetWidth()) * (float)cachedLogo->GetHeight();
+                ImageAttributes imgAttr;
+                imgAttr.SetWrapMode(WrapModeTileFlipXY);
 
-                        BLENDFUNCTION bf = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-
-                        AlphaBlend(hdc, 30, 15, (int)aspectWidth, (int)aspectHeight, 
-                                   hdcMem, 0, 0, bmp.bmWidth, bmp.bmHeight, bf);
-
-                        SelectObject(hdcMem, hOld);
-                        DeleteDC(hdcMem);
-                        DeleteObject(hBmpRes);
-                    }
-                }
+                graphics.DrawImage(cachedLogo, 
+                    RectF(30.0f, 15.0f, aspectWidth, aspectHeight),
+                    0, 0, (REAL)cachedLogo->GetWidth(), (REAL)cachedLogo->GetHeight(), 
+                    UnitPixel, &imgAttr);
             }
 
             Graphics graphicsLine(hdc);
             RECT rc; GetClientRect(hwnd, &rc);
-            Color colorLinea(isDarkModeEnabled() ? Color(80, 80, 80) : Color(220, 220, 220));
-            Pen pen(colorLinea, 1.0f);
+            Pen pen(isDarkModeEnabled ? Color(80, 80, 80) : Color(220, 220, 220), 1.0f);
             graphicsLine.DrawLine(&pen, 30.0f, 95.5f, (REAL)rc.right - 30.0f, 95.5f);
-
+            
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -143,7 +202,7 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 graphics.SetSmoothingMode(SmoothingModeHighQuality);
                 graphics.SetPixelOffsetMode(PixelOffsetModeHighQuality);
 
-                Color winBackColor(isDarkModeEnabled() ? Color(32, 32, 32) : Color(255, 255, 255));
+                Color winBackColor(isDarkModeEnabled ? Color(32, 32, 32) : Color(255, 255, 255));
                 
                 SolidBrush clearBrush(winBackColor);
                 graphics.FillRectangle(&clearBrush, 0, 0, pDIS->rcItem.right, pDIS->rcItem.bottom);
@@ -151,7 +210,7 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 Color btnColor, borderColor, textColor;
                 bool isHovered = mouseHiglight;
 
-                if (isDarkModeEnabled()) {
+                if (isDarkModeEnabled) {
                     if (pDIS->itemState & ODS_SELECTED) btnColor = Color(80, 80, 80);      
                     else if (isHovered) btnColor = Color(70, 70, 70);                    
                     else btnColor = Color(60, 60, 60);
@@ -209,13 +268,17 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     mouseHiglight = true;
                     InvalidateRect((HWND)wp, NULL, FALSE);
                 }
-            } else {
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                return TRUE; 
+            } 
+            else {
                 if (mouseHiglight) {
                     mouseHiglight = false;
                     InvalidateRect(GetDlgItem(hwnd, 1), NULL, FALSE);
                 }
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                return TRUE;
             }
-            return DefWindowProc(hwnd, msg, wp, lp);
         }
 
         case WM_KEYDOWN: {
@@ -234,7 +297,9 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_DESTROY: {
             if (hBrushSfondo) DeleteObject(hBrushSfondo);
-            if (imgLogo) delete imgLogo; 
+            if (imgLogo) delete imgLogo;
+            if (cachedLogo) delete cachedLogo;
+            if (hBmpRes) DeleteObject(hBmpRes);
             if (hFont) DeleteObject(hFont);
             PostQuitMessage(0);
             break;
@@ -248,10 +313,19 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     SetProcessDPIAware();
+
+    build = buildGet();
+    compCheck = stoi(build);
     if (compCheck < 9200) {
         MessageBox(NULL, string_1().c_str(), string_2().c_str(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
         return 0;
     }
+
+    OSName = OSGet();
+    NT = ntGet();
+    commercialVersion = commercialVersionGet();
+    user = userGet();
+    DarkModeCheck();
 
     GdiplusStartupInput gdiplusStartupInput;
     ULONG_PTR gdiplusToken;
@@ -276,6 +350,11 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
 
     HWND hButton = CreateWindow("BUTTON", "OK", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW, 370, 440, 80, 25, hwnd, (HMENU)1, hInst, NULL);
     SendMessage(hButton, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+    ShowWindow(hwnd, nShow);
+    UpdateWindow(hwnd);
+
+    PostMessage(hwnd, WM_NULL, 0, 0);
 
     MSG msg = {0};
     while (GetMessage(&msg, NULL, 0, 0)) {
