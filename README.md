@@ -5,13 +5,10 @@
 
 | BetterWinver | Preview |
 | :--- | :---: |
-| BetterWinver è un programma scritto in c++ che mira a ricreare l'applicazione "Informazioni di Windows (Winver)" di Microsoft Windows, migliorandone l'aspetto grafico e il funzionamento utilizzando le API di windows (WIN32). | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Assets/Preview.png?raw=true" width="400"> |
-
-## Informazioni
-- BetterWinver è un'applicazione pensata per Windows 11, ma è utilizzabile anche su Windows 8 e successivi (64 bit)
+| BetterWinver è un programma scritto in c++ per Windows 8 x64 e superiori (Pensato per Windows 10 & 11) che mira a ricreare l'applicazione "Informazioni di Windows (Winver)" di Microsoft Windows, migliorandone l'aspetto grafico e il funzionamento utilizzando le API di windows (WIN32). | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Assets/Preview.png?raw=true" width="400"> |
 
 ## Aggiunte future
-- Supporto completo a Windows 10 (Dark mode e estrazione risorse dal sistema)
+//
 
 ## Sostituzione a Winver
 > [!Warning]
@@ -27,5 +24,3 @@
 
 ## ℹ️ Crediti
 - [@Microsoft](https://github.com/microsoft) per Microsoft Windows
-
-  <meta name="google-site-verification" content="Rk593i61iX0j9T1fLFqW5uktGWzvha5m_kJ9EC_p6Jw" />
