@@ -1,4 +1,4 @@
-//BetterWinver 1.2.0
+//BetterWinver 1.3.0
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -120,17 +120,12 @@ string commercialVersionGet() {
 }
 
 string userGet(){
-    TCHAR userName[UNLEN + 1];
+    wchar_t userName[UNLEN + 1];
     DWORD userName_len = UNLEN + 1;
-    if (GetUserName(userName, &userName_len)) {
-        
-        #ifdef UNICODE
-            wstring ws(userName);
-            return string(ws.begin(), ws.end());
-            
-        #else
-            return string(userName);
-        #endif
+    if (GetUserNameW(userName, &userName_len)) {
+        char buffer[UNLEN * 3];
+        WideCharToMultiByte(CP_UTF8, 0, userName, -1, buffer, sizeof(buffer), NULL, NULL);
+        return string(buffer);
     }
     return "Unknown";
 }
