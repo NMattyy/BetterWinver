@@ -1,4 +1,4 @@
-//BetterWinver 1.3.0
+//BetterWinver 1.3.1
 #ifndef FEATURES_H
 #define FEATURES_H
 
@@ -15,6 +15,10 @@ using namespace std;
 
 extern int compCheck;
 extern bool isDarkModeEnabled;
+
+int ScaleValue(int value, UINT dpi) {
+    return MulDiv(value, dpi, 96);
+}
 
 IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType) {
     HRSRC hRsrc = FindResource(hModule, lpName, lpType);
@@ -74,4 +78,7 @@ void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEn
     }
 }
 
+float ScaleValueF(float value, UINT dpi) {
+    return (value * (float)dpi) / 96.0f;
+}
 #endif
