@@ -1,4 +1,4 @@
-//BetterWinver 1.3.0
+//BetterWinver 1.3.1
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -131,6 +131,24 @@ string userGet(){
 }
 
 //Settings
+UINT GetSystemDPI() {
+    UINT dpi = 96;
+    HMODULE hUser32 = GetModuleHandleA("user32.dll");
+    
+    typedef UINT (WINAPI* GetDpiForSystemProc)();
+    GetDpiForSystemProc pGetDpiForSystem = (GetDpiForSystemProc)GetProcAddress(hUser32, "GetDpiForSystem");
+    
+    if (pGetDpiForSystem) {
+        dpi = pGetDpiForSystem();
+    } else {
+        HDC hdc = GetDC(NULL);
+        if (hdc) {
+            dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+            ReleaseDC(NULL, hdc);
+        }
+    }
+    return dpi;
+}
 
 void DarkModeCheck() {
     HKEY hKey;
