@@ -1,4 +1,4 @@
-//BetterWinver 1.3.0
+//BetterWinver 1.3.1
 #include <windows.h>
 #include <dwmapi.h>
 #include <string>
@@ -25,7 +25,7 @@ int compCheck;
 bool isDarkModeEnabled;
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-static COLORREF coloreSfondo = RGB(255, 255, 255);
+    static COLORREF coloreSfondo = RGB(255, 255, 255);
     static COLORREF coloreTesto = RGB(0, 0, 0);
     static HBRUSH hBrushSfondo = NULL;
     static bool mouseHiglight = false;
@@ -54,7 +54,7 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
             DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
             char systemPath[MAX_PATH];
-            GetSystemDirectory(systemPath, MAX_PATH);
+            GetSystemDirectory(systemPath, MAX_PATH); // Ottiene "C:\Windows\System32"
             string dllPath = string(systemPath) + "\\..\\Branding\\Basebrd\\basebrd.dll";
 
             HMODULE hLib = LoadLibraryEx(dllPath.c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
@@ -85,7 +85,6 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            
             Graphics graphics(hdc);
             
             if (compCheck >= 22000) {
@@ -96,32 +95,41 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
                 graphics.Clear(backColor);
             }
 
-            float aspectWidth = 420.0f;
+            UINT dpi = GetSystemDPI();
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+
+            float startX = ScaleValueF(30.0f, dpi);
+            float startY = ScaleValueF(15.0f, dpi);
+            float realW = (float)rc.right - (startX * 2);
+
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+            graphics.SetSmoothingMode(SmoothingModeHighQuality);
+            graphics.SetPixelOffsetMode(PixelOffsetModeHalf);
 
             if (compCheck >= 22000 && imgLogo && imgLogo->GetLastStatus() == Ok) {
-                graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-                float aspectHeight = (aspectWidth / (float)imgLogo->GetWidth()) * (float)imgLogo->GetHeight();
-                graphics.DrawImage(imgLogo, RectF(30.0f, 15.0f, aspectWidth, aspectHeight));
+                float aspectHeight = (realW / (float)imgLogo->GetWidth()) * (float)imgLogo->GetHeight();
+                graphics.DrawImage(imgLogo, RectF(startX, startY, realW, aspectHeight));
             } 
             else if (cachedLogo && cachedLogo->GetLastStatus() == Ok) {
-                graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
                 graphics.SetSmoothingMode(SmoothingModeAntiAlias);
                 graphics.SetPixelOffsetMode(PixelOffsetModeHighQuality);
 
-                float aspectHeight = (aspectWidth / (float)cachedLogo->GetWidth()) * (float)cachedLogo->GetHeight();
+                float aspectHeight = (realW / (float)cachedLogo->GetWidth()) * (float)cachedLogo->GetHeight();
                 ImageAttributes imgAttr;
                 imgAttr.SetWrapMode(WrapModeTileFlipXY);
 
                 graphics.DrawImage(cachedLogo, 
-                    RectF(30.0f, 15.0f, aspectWidth, aspectHeight),
+                    RectF(startX, startY, realW, aspectHeight),
                     0, 0, (REAL)cachedLogo->GetWidth(), (REAL)cachedLogo->GetHeight(), 
                     UnitPixel, &imgAttr);
             }
 
             Graphics graphicsLine(hdc);
-            RECT rc; GetClientRect(hwnd, &rc);
-            Pen pen(isDarkModeEnabled ? Color(80, 80, 80) : Color(220, 220, 220), 1.0f);
-            graphicsLine.DrawLine(&pen, 30.0f, 95.5f, (REAL)rc.right - 30.0f, 95.5f);
+            float lineY = ScaleValueF(75.0f, dpi);
+            GetClientRect(hwnd, &rc);
+            Pen linePen(isDarkModeEnabled ? Color(80, 80, 80) : Color(220, 220, 220), 1.0f);
+            graphics.DrawLine(&linePen, startX, lineY, (REAL)rc.right - startX, lineY);
 
             if (isDarkModeEnabled) {
                 graphics.SetTextRenderingHint(TextRenderingHintClearTypeGridFit);
@@ -140,10 +148,11 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
 
             SolidBrush textBrush(isDarkModeEnabled ? Color(255, 255, 255) : Color(0, 0, 0));
 
-            RectF layoutRectBody(30.0f, 115.0f, 420.0f, 210.0f); 
+            RectF layoutRectBody(startX, ScaleValueF(90.0f, dpi), realW, ScaleValueF(210.0f, dpi)); 
             graphics.DrawString(string_4().c_str(), -1, gdiFont, layoutRectBody, NULL, &textBrush);
 
-            RectF layoutRectUser(30.0f, 340.0f, 420.0f, 80.0f);
+            float userY = (float)rc.bottom - ScaleValueF(120.0f, dpi); 
+            RectF layoutRectUser(startX, userY, realW, ScaleValueF(40.0f, dpi));
             graphics.DrawString(string_5().c_str(), -1, gdiFont, layoutRectUser, NULL, &textBrush);
 
             EndPaint(hwnd, &ps);
@@ -278,6 +287,31 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
             return 0;
         }
 
+        case WM_DPICHANGED: {
+            LPRECT lprcNewScale = (LPRECT)lp;
+            UINT newDpi = HIWORD(wp);
+
+            SetWindowPos(hwnd, NULL, lprcNewScale->left, lprcNewScale->top, lprcNewScale->right - lprcNewScale->left, lprcNewScale->bottom - lprcNewScale->top, SWP_NOZORDER | SWP_NOACTIVATE);
+            
+            if (gdiFont) { delete gdiFont; gdiFont = nullptr; }
+            if (ffSegoeV) { delete ffSegoeV; ffSegoeV = nullptr; }
+
+            HWND hBtn = GetDlgItem(hwnd, 1);
+            int newBtnW = ScaleValue(65, newDpi);
+            int newBtnH = ScaleValue(22, newDpi);
+            
+            RECT clientRect;
+            GetClientRect(hwnd, &clientRect);
+            
+            int btnX = clientRect.right - newBtnW - ScaleValue(30, newDpi);
+            int btnY = clientRect.bottom - newBtnH - ScaleValue(15, newDpi);
+            
+            MoveWindow(hBtn, btnX, btnY, newBtnW, newBtnH, TRUE);
+
+            InvalidateRect(hwnd, NULL, TRUE);
+            return 0;
+        }
+
         case WM_DESTROY: {
             if (hBrushSfondo) DeleteObject(hBrushSfondo);
             if (hFont) DeleteObject(hFont);
@@ -293,14 +327,23 @@ static COLORREF coloreSfondo = RGB(255, 255, 255);
 }
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
-    SetProcessDPIAware();
-
+    UINT currentDpi = GetSystemDPI();
+    
     build = buildGet();
     compCheck = stoi(build);
     if (compCheck < 9200) {
         MessageBox(NULL, string_1().c_str(), string_2().c_str(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
         return 0;
     }
+
+    int clientW = ScaleValue(360, currentDpi);
+    int clientH = ScaleValue(390, currentDpi);
+
+    RECT rc = { 0, 0, clientW, clientH };
+    AdjustWindowRectEx(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, 0);
+
+    int windowW = rc.right - rc.left;
+    int windowH = rc.bottom - rc.top;
 
     OSName = OSGet();
     NT = ntGet();
@@ -319,7 +362,12 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     wc.lpszClassName = "BetterWinver";
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("BetterWinver", string_3().c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 480, 520, NULL, NULL, hInst, NULL);
+    HWND hwnd = CreateWindow("BetterWinver", string_3().c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, windowW, windowH, NULL, NULL, hInst, NULL);
+
+    int btnW = ScaleValue(65, currentDpi);
+    int btnH = ScaleValue(22, currentDpi);
+    int btnX = clientW - btnW - ScaleValue(30, currentDpi); 
+    int btnY = clientH - btnH - ScaleValue(15, currentDpi);
 
     if (compCheck >= 22000) {
         int backdropType = DWMSBT_MAINWINDOW;
@@ -328,7 +376,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
         DwmExtendFrameIntoClientArea(hwnd, &margins);
     }
 
-    HWND hButton = CreateWindowW(L"BUTTON", L"OK", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW, 370, 440, 80, 25, hwnd, (HMENU)1, hInst, NULL);
+    HWND hButton = CreateWindowW(L"BUTTON", L"OK", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_OWNERDRAW, btnX, btnY, btnW, btnH, hwnd, (HMENU)1, hInst, NULL);
     SendMessage(hButton, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     ShowWindow(hwnd, nShow);
