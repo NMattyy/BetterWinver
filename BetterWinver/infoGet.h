@@ -1,4 +1,4 @@
-//BetterWinver 1.3.1
+//BetterWinver 1.4.0
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -7,62 +7,61 @@
 #include <lmcons.h>
 #include <string>
 
-using namespace std;
-
-extern string NT;
-extern string build;
-extern string OSName;
-extern string commercialVersion;
-extern string user;
+extern std::wstring NT;
+extern std::wstring build;
+extern std::wstring OSName;
+extern std::wstring commercialVersion;
+extern std::wstring user;
 extern int compCheck;
 extern bool isDarkModeEnabled;
 
-//Placeholders
-
-string ntGet() {
+//Information
+inline std::wstring ntGet() {
     HKEY hKey;
     DWORD major = 0;
     DWORD minor = 0;
     
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         DWORD size = sizeof(DWORD);
 
-        if (RegQueryValueExA(hKey, "CurrentMajorVersionNumber", NULL, NULL, (LPBYTE)&major, &size) == ERROR_SUCCESS) {
-            RegQueryValueExA(hKey, "CurrentMinorVersionNumber", NULL, NULL, (LPBYTE)&minor, &size);
+        if (RegQueryValueExW(hKey, L"CurrentMajorVersionNumber", NULL, NULL, (LPBYTE)&major, &size) == ERROR_SUCCESS) {
+            RegQueryValueExW(hKey, L"CurrentMinorVersionNumber", NULL, NULL, (LPBYTE)&minor, &size);
         }
 
         if (major == 0) {
-            char buildBuffer[256];
+            wchar_t buildBuffer[256] = {0};
             DWORD bufferSize = sizeof(buildBuffer);
 
-            if (RegQueryValueExA(hKey, "CurrentVersion", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            if (RegQueryValueExW(hKey, L"CurrentVersion", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+                buildBuffer[255] = L'\0';
                 RegCloseKey(hKey);
-                return string(buildBuffer);
+                return std::wstring(buildBuffer);
             }
         }   
         RegCloseKey(hKey);  
     }
-    return to_string(major) + "." + to_string(minor);
+    return std::to_wstring(major) + L"." + std::to_wstring(minor);
 }
 
-string buildGet() {
+inline std::wstring buildGet() {
     HKEY hKey;
-    string buildNumber = "00000";
+    std::wstring buildNumber = L"00000";
 
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         
-        char buildBuffer[256];
+        wchar_t buildBuffer[256] = {0};
         DWORD bSize = sizeof(buildBuffer);
 
-        if (RegQueryValueExA(hKey, "CurrentBuild", NULL, NULL, (LPBYTE)buildBuffer, &bSize) == ERROR_SUCCESS) {
-            buildNumber = string(buildBuffer);
+        if (RegQueryValueExW(hKey, L"CurrentBuild", NULL, NULL, (LPBYTE)buildBuffer, &bSize) == ERROR_SUCCESS) {
+            buildBuffer[255] = L'\0';
+            buildNumber = std::wstring(buildBuffer);
 
-            if (ntGet() == "10.0"){
+            if (ntGet() == L"10.0"){
                 DWORD ubrValue = 0;
                 DWORD uSize = sizeof(DWORD);
 
-                if (RegQueryValueExA(hKey, "UBR", NULL, NULL, (LPBYTE)&ubrValue, &uSize) == ERROR_SUCCESS) {
-                    buildNumber += "." + to_string(ubrValue);
+                if (RegQueryValueExW(hKey, L"UBR", NULL, NULL, (LPBYTE)&ubrValue, &uSize) == ERROR_SUCCESS) {
+                    buildNumber += L"." + std::to_wstring(ubrValue);
                 }
             }
             RegCloseKey(hKey);
@@ -71,69 +70,70 @@ string buildGet() {
     return buildNumber;
 }
 
-string OSGet() {
+inline std::wstring OSGet() {
     HKEY hKey;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS){
-        char buildBuffer[256];
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS){
+        wchar_t buildBuffer[256] = {0};
         DWORD bufferSize = sizeof(buildBuffer);
 
         if (compCheck < 22000){
-            if (RegQueryValueExA(hKey, "ProductName", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+                buildBuffer[255] = L'\0';
                 RegCloseKey(hKey);
-                return string(buildBuffer);
+                return std::wstring(buildBuffer);
             }
         } else {
-            if (RegQueryValueExA(hKey, "EditionID", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            if (RegQueryValueExW(hKey, L"EditionID", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+                buildBuffer[255] = L'\0';
                 RegCloseKey(hKey);
-                string name = string(buildBuffer);
-                if (name == "Professional"){
-                    return "Windows 11 Pro";
+                std::wstring name = std::wstring(buildBuffer);
+                if (name == L"Professional"){
+                    return L"Windows 11 Pro";
                 }
-                return "Windows 11 " + name;
+                return L"Windows 11 " + name;
             }
         }
         RegCloseKey(hKey);
     }
-    return "Windows";
+    return L"Windows";
 }
 
-string commercialVersionGet() {
+inline std::wstring commercialVersionGet() {
     if (compCheck < 19042){
-        return "";
+        return L"";
     }
 
     HKEY hKey;
 
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         
-        char buildBuffer[256];
+        wchar_t buildBuffer[256] = {0};
         DWORD bufferSize = sizeof(buildBuffer);
 
-        if (RegQueryValueExA(hKey, "DisplayVersion", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"DisplayVersion", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            buildBuffer[255] = L'\0';
             RegCloseKey(hKey);
-            return string(buildBuffer);
+            return std::wstring(buildBuffer);
         }
         RegCloseKey(hKey);
     }
 
-    return "";
+    return L"";
 }
 
-string userGet(){
-    wchar_t userName[UNLEN + 1];
+inline std::wstring userGet(){
+    wchar_t userName[UNLEN + 1] = {0};
     DWORD userName_len = UNLEN + 1;
     if (GetUserNameW(userName, &userName_len)) {
-        char buffer[UNLEN * 3];
-        WideCharToMultiByte(CP_UTF8, 0, userName, -1, buffer, sizeof(buffer), NULL, NULL);
-        return string(buffer);
+        return std::wstring(userName);
     }
-    return "Unknown";
+    return L"Unknown";
 }
 
 //Settings
-UINT GetSystemDPI() {
+inline UINT GetSystemDPI() {
     UINT dpi = 96;
-    HMODULE hUser32 = GetModuleHandleA("user32.dll");
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
     
     typedef UINT (WINAPI* GetDpiForSystemProc)();
     GetDpiForSystemProc pGetDpiForSystem = (GetDpiForSystemProc)GetProcAddress(hUser32, "GetDpiForSystem");
@@ -150,34 +150,48 @@ UINT GetSystemDPI() {
     return dpi;
 }
 
-void DarkModeCheck() {
+inline UINT GetDpiForWindow(HWND hwnd) {
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    if (hUser32) {
+        typedef UINT (WINAPI* GetDpiForWindowProc)(HWND);
+        GetDpiForWindowProc pGetDpiForWindow = (GetDpiForWindowProc)GetProcAddress(hUser32, "GetDpiForWindow");
+        
+        if (pGetDpiForWindow) {
+            return pGetDpiForWindow(hwnd);
+        }
+    }
+    return GetSystemDPI(); 
+}
+
+inline void DarkModeCheck() {
     HKEY hKey;
     DWORD value = 1; //1 Light, 0 Dark;
     DWORD valueSize = sizeof(value);
 
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExA(hKey, "AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &valueSize);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &valueSize);
         RegCloseKey(hKey);
     }
     isDarkModeEnabled = (value == 0);
 }
 
-string currentLanguage(){
+inline std::wstring currentLanguage(){
     HKEY hKey;
 
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         
-        char buildBuffer[256];
+        wchar_t buildBuffer[256] = {0};
         DWORD bufferSize = sizeof(buildBuffer);
 
-        if (RegQueryValueExA(hKey, "InstallLanguage", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)buildBuffer, &bufferSize) == ERROR_SUCCESS) {
+            buildBuffer[255] = L'\0';
             RegCloseKey(hKey);
-            return string(buildBuffer);
+            return std::wstring(buildBuffer);
         }
         RegCloseKey(hKey);
     }
 
-    return "0409"; //English-US
+    return L"0409"; //English-US
 }
 
 #endif
