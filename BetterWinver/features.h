@@ -1,4 +1,4 @@
-//BetterWinver 1.3.1
+//BetterWinver 1.4.0
 #ifndef FEATURES_H
 #define FEATURES_H
 
@@ -11,17 +11,63 @@
 #include "infoGet.h"
 
 using namespace Gdiplus;
-using namespace std;
 
 extern int compCheck;
 extern bool isDarkModeEnabled;
+extern SolidBrush* pTextBrush;
+extern Pen* pLinePen;
+extern ImageAttributes* pImgAttr;
 
-int ScaleValue(int value, UINT dpi) {
+inline void UpdateTheme(HWND hwnd, bool& DarkMode, COLORREF& bgCol, COLORREF& txtCol, HBRUSH& hBrushBg, Font*& pGdiFont, FontFamily*& pFontFamily) {
+    DarkModeCheck();
+    DarkMode = isDarkModeEnabled;
+
+    bgCol = DarkMode ? RGB(32, 32, 32) : RGB(255, 255, 255);
+    txtCol = DarkMode ? RGB(255, 255, 255) : RGB(0, 0, 0);
+
+    if (pTextBrush) { delete pTextBrush; pTextBrush = nullptr; }
+    if (pLinePen) { delete pLinePen; pLinePen = nullptr; }
+    if (pImgAttr) { delete pImgAttr; pImgAttr = nullptr; }
+
+    Color gdiTxtCol;
+    gdiTxtCol.SetFromCOLORREF(txtCol);
+    pTextBrush = new SolidBrush(gdiTxtCol);
+
+    Color lineCol = DarkMode ? Color(80, 80, 80) : Color(220, 220, 220);
+    pLinePen = new Pen(lineCol, 1.0f);
+
+    pImgAttr = new ImageAttributes();
+    pImgAttr->SetWrapMode(WrapModeTileFlipXY);
+
+    if (hBrushBg) DeleteObject(hBrushBg);
+    hBrushBg = CreateSolidBrush(bgCol);
+
+    BOOL useDarkMode = DarkMode;
+    DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
+
+    UINT dpi = GetDpiForWindow(hwnd);
+
+    if (pGdiFont) { delete pGdiFont; pGdiFont = nullptr; }
+    if (pFontFamily) { delete pFontFamily; pFontFamily = nullptr; }
+
+    pFontFamily = new FontFamily(L"Segoe UI Variable Text");
+    if (pFontFamily->GetLastStatus() != Ok) {
+        delete pFontFamily;
+        pFontFamily = new FontFamily(L"Segoe UI");
+    }
+
+    float scaledFontSize = (12.0f * (float)dpi) / 96.0f;
+    pGdiFont = new Font(pFontFamily, scaledFontSize, FontStyleRegular, UnitPixel);
+
+    InvalidateRect(hwnd, NULL, TRUE);
+}
+
+inline int ScaleValue(int value, UINT dpi) {
     return MulDiv(value, dpi, 96);
 }
 
-IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType) {
-    HRSRC hRsrc = FindResource(hModule, lpName, lpType);
+inline IStream* CreateStreamOnResource(HMODULE hModule, LPCWSTR lpName, LPCWSTR lpType) {
+    HRSRC hRsrc = FindResourceW(hModule, lpName, lpType);
     if (!hRsrc) return NULL;
     
     DWORD dwSize = SizeofResource(hModule, hRsrc);
@@ -34,7 +80,7 @@ IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType)
 }
 
 extern Bitmap* cachedLogo;
-void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEnabled) {
+inline void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEnabled) {
     if (!hBmpRes) return;
     if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
 
@@ -63,10 +109,10 @@ void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEn
             tempBmp.GetPixel(x, y, &c);
             int r = c.GetR(), g = c.GetG(), b = c.GetB();
             int brightness = (r + g + b) / 3;
-            int diff = max(r, max(g, b)) - min(r, min(g, b));
+            int diff = std::max(r, std::max(g, b)) - std::min(r, std::min(g, b));
 
             if (diff > 25) { 
-                float alphaFactor = min(1.0f, (float)diff / 25.0f);
+                float alphaFactor = std::min(1.0f, (float)diff / 25.0f);
                 cachedLogo->SetPixel(x, y, Color((BYTE)(alphaFactor * 255.0f), logoBlue.GetR(), logoBlue.GetG(), logoBlue.GetB()));
             } else {
                 float alpha = 0;
@@ -78,7 +124,7 @@ void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEn
     }
 }
 
-float ScaleValueF(float value, UINT dpi) {
+inline float ScaleValueF(float value, UINT dpi) {
     return (value * (float)dpi) / 96.0f;
 }
 #endif
