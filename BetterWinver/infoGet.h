@@ -1,4 +1,4 @@
-//BetterWinver 1.4.0
+//BetterWinver 1.4.1
 #ifndef INFOGET_H
 #define INFOGET_H
 
