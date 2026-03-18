@@ -1,4 +1,4 @@
-// BetterWinver 1.4.0
+// BetterWinver 1.4.1
 #ifndef TRANSLATION_H
 #define TRANSLATION_H
 
