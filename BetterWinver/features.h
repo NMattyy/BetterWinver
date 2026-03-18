@@ -1,4 +1,4 @@
-//BetterWinver 1.4.0
+//BetterWinver 1.4.1
 #ifndef FEATURES_H
 #define FEATURES_H
 
@@ -17,6 +17,11 @@ extern bool isDarkModeEnabled;
 extern SolidBrush* pTextBrush;
 extern Pen* pLinePen;
 extern ImageAttributes* pImgAttr;
+extern Image* imgLogo;       
+extern Bitmap* cachedLogo;   
+extern HBITMAP hBmpRes;     
+extern int bmpWidth;        
+extern int bmpHeight;
 
 inline void UpdateTheme(HWND hwnd, bool& DarkMode, COLORREF& bgCol, COLORREF& txtCol, HBRUSH& hBrushBg, Font*& pGdiFont, FontFamily*& pFontFamily) {
     DarkModeCheck();
@@ -79,7 +84,6 @@ inline IStream* CreateStreamOnResource(HMODULE hModule, LPCWSTR lpName, LPCWSTR 
     return SHCreateMemStream((BYTE*)pBuffer, dwSize);
 }
 
-extern Bitmap* cachedLogo;
 inline void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEnabled) {
     if (!hBmpRes) return;
     if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
@@ -121,6 +125,38 @@ inline void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDar
                 cachedLogo->SetPixel(x, y, Color((BYTE)alpha, baseColor.GetR(), baseColor.GetG(), baseColor.GetB()));
             }
         }
+    }
+}
+
+inline void logoCreation(int resourceNumber){
+    if (imgLogo) { delete imgLogo; imgLogo = nullptr; }
+    if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
+    if (hBmpRes) { DeleteObject(hBmpRes); hBmpRes = NULL; }
+
+    wchar_t systemPath[MAX_PATH];
+    GetSystemDirectoryW(systemPath, MAX_PATH);
+    std::wstring dllPath = std::wstring(systemPath) + L"\\..\\Branding\\Basebrd\\basebrd.dll";
+
+    HMODULE hLib = LoadLibraryExW(dllPath.c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
+
+    if (hLib) {
+        if (compCheck >= 22000) {
+            IStream* pStream = CreateStreamOnResource(hLib, MAKEINTRESOURCEW(resourceNumber), L"IMAGE");
+            if (pStream) {
+                imgLogo = new Image(pStream);
+                pStream->Release();
+            }
+        } else {
+            hBmpRes = (HBITMAP)LoadImageW(hLib, MAKEINTRESOURCEW(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+            if (hBmpRes) {
+                BITMAP bmp;
+                GetObject(hBmpRes, sizeof(BITMAP), &bmp);
+                bmpWidth = bmp.bmWidth;
+                bmpHeight = bmp.bmHeight;
+                bitmapCache(hBmpRes, bmpWidth, bmpHeight, isDarkModeEnabled);
+            }
+        }
+        FreeLibrary(hLib);
     }
 }
 
