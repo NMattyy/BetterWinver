@@ -1,4 +1,4 @@
-//BetterWinver 1.5.0
+//BetterWinver 1.6.0
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -160,6 +160,15 @@ inline void currentLanguage(wchar_t* out, DWORD size) {
         RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)out, &bSize);
         RegCloseKey(hKey);
     }
+}
+
+//Utility
+inline int ScaleValue(int value, UINT dpi) {
+    return MulDiv(value, dpi, 96);
+}
+
+inline float ScaleValueF(float value, UINT dpi) {
+    return (value * (float)dpi) / 96.0f;
 }
 
 #endif
