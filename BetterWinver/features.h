@@ -1,259 +1,247 @@
-//BetterWinver 1.5.0
+//BetterWinver 1.6.0
 #ifndef FEATURES_H
 #define FEATURES_H
 
 #include <windows.h>
-#include <dwmapi.h>
-#include <gdiplus.h>
-#include <wingdi.h>
-#include <shlwapi.h>
+#include <d2d1.h>
+#include <dwrite.h>
+#include <algorithm>
 
 #include "infoGet.h"
 
-using namespace Gdiplus;
-
 extern int compCheck;
 extern bool isDarkModeEnabled;
+extern ID2D1Factory* pD2DFactory;
+extern ID2D1DCRenderTarget* pRenderTarget;
 
-extern SolidBrush* pTextBrush;
-extern Pen* pLinePen;
-extern Font* gdiFont;
-extern FontFamily* ffSegoeV;
-extern StringFormat* pStringFormatCenter;
+extern ID2D1SolidColorBrush* pTextBrush;
+extern ID2D1SolidColorBrush* pLinePenD2D;
+extern ID2D1SolidColorBrush* pBtnBrush;
 
-extern ImageAttributes* pImgAttr;
-extern Image* imgLogo;       
-extern Bitmap* cachedLogo;   
-extern HBITMAP hBmpRes;     
-extern int bmpWidth;        
-extern int bmpHeight;
+extern IDWriteFactory* pDWriteFactory;
+extern IDWriteTextFormat* pTextFormatBody;
+extern ID2D1Bitmap* pBitmapLogo;
+extern IWICImagingFactory* pWICFactory;
 
-extern Pen* pLinePen;
-
-extern GraphicsPath* buttonPath;
-extern float g_startX, g_startY, g_realW, g_lineY;
-extern RectF g_layoutRectBody;
-extern StringFormat* g_pStringFormatCenter;
-extern SolidBrush *pBtnFillNormal, *pBtnFillHover, *pBtnFillPressed, *pBtnTextBrushStatic;
-extern Pen* pBtnBorderPenStatic;
 struct CustomButton {
     RECT rect;
     bool hover;
     bool pressed;
 };
+extern CustomButton btn;
 
-inline int ScaleValue(int value, UINT dpi) {
-    return MulDiv(value, dpi, 96);
+inline HRESULT CreateDeviceResources(HWND hwnd);
+inline void DiscardDeviceResources();
+inline void windowTheme(HWND hwnd);
+inline void logoCreation(HWND hwnd, int resourceNumber);
+inline HRESULT CreateTextFormats(HWND hwnd);
+inline HRESULT LoadResourceBitmap(HWND hwnd);
+inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown);
+
+inline HRESULT CreateDeviceResources(HWND hwnd) {
+    HRESULT hr = S_OK;
+    if (!pRenderTarget) {
+        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+            D2D1_RENDER_TARGET_TYPE_DEFAULT, 
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 
+            0, 0, D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE, D2D1_FEATURE_LEVEL_DEFAULT);
+
+        hr = pD2DFactory->CreateDCRenderTarget(&props, &pRenderTarget);
+        
+        if (SUCCEEDED(hr)) {
+            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pTextBrush);
+            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pLinePenD2D);
+            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0,0), &pBtnBrush);
+        }
+    }
+
+    if (SUCCEEDED(hr) && pTextBrush && pLinePenD2D) {
+        D2D1_COLOR_F textColor = isDarkModeEnabled ? D2D1::ColorF(D2D1::ColorF::White) : D2D1::ColorF(D2D1::ColorF::Black);
+        D2D1_COLOR_F lineColor = isDarkModeEnabled ? D2D1::ColorF(0.3f, 0.3f, 0.3f) : D2D1::ColorF(0.8f, 0.8f, 0.8f);
+        
+        pTextBrush->SetColor(textColor);
+        pLinePenD2D->SetColor(lineColor);
+        
+        hr = CreateTextFormats(hwnd);
+        LoadResourceBitmap(hwnd);
+    }
+    
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    UINT dpi = GetDpiForWindow(hwnd);
+    float margin = ScaleValueF(30.0f, dpi);
+    int btnW = ScaleValue(75, dpi);
+    int btnH = ScaleValue(24, dpi);
+    
+    btn.rect.right = (long)(rc.right - margin);
+    btn.rect.left = (long)(btn.rect.right - btnW);
+    btn.rect.bottom = (long)(rc.bottom - ScaleValue(20, dpi));
+    btn.rect.top = (long)(btn.rect.bottom - btnH);
+
+    return hr;
 }
 
-inline float ScaleValueF(float value, UINT dpi) {
-    return (value * (float)dpi) / 96.0f;
+inline void DiscardDeviceResources() {
+    SafeRelease(&pRenderTarget);
+    SafeRelease(&pTextBrush);
+    SafeRelease(&pLinePenD2D);
+    SafeRelease(&pBtnBrush);
 }
 
 inline void windowTheme(HWND hwnd) {
     if (compCheck >= 22000) {
-        int backdropType = DWMSBT_MAINWINDOW;
+        BOOL dark = isDarkModeEnabled;
+        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
+
+        int backdropType = DWMSBT_MAINWINDOW; 
         DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+        
         MARGINS margins = {-1, -1, -1, -1};
         DwmExtendFrameIntoClientArea(hwnd, &margins);
     }
-}
 
-inline void UpdateTheme(HWND hwnd, bool& DarkMode, COLORREF& bgCol, COLORREF& txtCol, HBRUSH& hBrushBg, Font*& pGdiFont, FontFamily*& pFontFamily, CustomButton& btn) {
-    DarkModeCheck();
-    DarkMode = isDarkModeEnabled;
-
-    bgCol = DarkMode ? RGB(32, 32, 32) : RGB(255, 255, 255);
-    txtCol = DarkMode ? RGB(255, 255, 255) : RGB(0, 0, 0);
-
-    if (pTextBrush) delete pTextBrush;
-    if (pLinePen) delete pLinePen;
-    if (pImgAttr) delete pImgAttr;
-    if (pBtnFillNormal) delete pBtnFillNormal;
-    if (pBtnFillHover) delete pBtnFillHover;
-    if (pBtnFillPressed) delete pBtnFillPressed;
-    if (pBtnTextBrushStatic) delete pBtnTextBrushStatic;
-    if (pBtnBorderPenStatic) delete pBtnBorderPenStatic;
-
-    Color gdiTxtCol; gdiTxtCol.SetFromCOLORREF(txtCol);
-    pTextBrush = new SolidBrush(gdiTxtCol);
-    
-    Color lineCol = DarkMode ? Color(80, 80, 80) : Color(220, 220, 220);
-    pLinePen = new Pen(lineCol, 1.0f);
-
-    if (DarkMode) {
-        pBtnFillNormal = new SolidBrush(Color(30, 255, 255, 255));
-        pBtnFillHover = new SolidBrush(Color(60, 255, 255, 255));
-        pBtnFillPressed = new SolidBrush(Color(100, 255, 255, 255));
-        pBtnTextBrushStatic = new SolidBrush(Color(255, 255, 255));
-        pBtnBorderPenStatic = new Pen(Color(80, 255, 255, 255), 0.1f);
-    } else {
-        pBtnFillNormal = new SolidBrush(Color(20, 0, 0, 0));
-        pBtnFillHover = new SolidBrush(Color(40, 0, 0, 0));
-        pBtnFillPressed = new SolidBrush(Color(100, 0, 0, 0));
-        pBtnTextBrushStatic = new SolidBrush(Color(0, 0, 0));
-        pBtnBorderPenStatic = new Pen(Color(50, 0, 0, 0), 0.1f);
-    }
-
-    if (!g_pStringFormatCenter) {
-        g_pStringFormatCenter = new StringFormat();
-        g_pStringFormatCenter->SetAlignment(StringAlignmentCenter);
-        g_pStringFormatCenter->SetLineAlignment(StringAlignmentCenter);
-    }
-
+    DiscardDeviceResources();
+    RECT rc;
+    GetClientRect(hwnd, &rc);
     UINT dpi = GetDpiForWindow(hwnd);
-    g_startX = ScaleValueF(30.0f, dpi);
-    g_startY = ScaleValueF(5.0f, dpi);
-    g_lineY = ScaleValueF(75.0f, dpi);
 
-    RECT rc; GetClientRect(hwnd, &rc);
-    int width = rc.right;
-    int height = rc.bottom;
-    g_realW = (float)width - (g_startX * 2);
+    float margin = ScaleValueF(30.0f, dpi);
+    int btnW = ScaleValue(75, dpi);
+    int btnH = ScaleValue(24, dpi);
 
-    g_layoutRectBody = RectF(g_startX, ScaleValueF(90.0f, dpi), g_realW, ScaleValueF(210.0f, dpi));
+    btn.rect.right = (long)(rc.right - margin);
+    btn.rect.left = (long)(btn.rect.right - btnW);
+    btn.rect.bottom = (long)(rc.bottom - ScaleValue(20, dpi));
+    btn.rect.top = (long)(btn.rect.bottom - btnH);
 
-    if (pGdiFont) delete pGdiFont;
-    if (pFontFamily) delete pFontFamily;
-    pFontFamily = new FontFamily(L"Segoe UI Variable Text");
-    if (pFontFamily->GetLastStatus() != Ok) {
-        delete pFontFamily;
-        pFontFamily = new FontFamily(L"Segoe UI");
-    }
-    pGdiFont = new Font(pFontFamily, ScaleValueF(12.0f, dpi), FontStyleRegular, UnitPixel);
-
-    int btnw = ScaleValue(75, dpi);
-    int btnh = ScaleValue(22, dpi);
-    btn.rect = { width - btnw - ScaleValue(30, dpi), height - btnh - ScaleValue(15, dpi), width - ScaleValue(30, dpi), height - ScaleValue(15, dpi) };
-
-    if (buttonPath) delete buttonPath;
-    buttonPath = new GraphicsPath();
-    float r = 8.0f;
-    RectF rf((REAL)btn.rect.left, (REAL)btn.rect.top, (REAL)btnw, (REAL)btnh);
-    buttonPath->AddArc(rf.X, rf.Y, r, r, 180, 90);
-    buttonPath->AddArc(rf.X + rf.Width - r, rf.Y, r, r, 270, 90);
-    buttonPath->AddArc(rf.X + rf.Width - r, rf.Y + rf.Height - r, r, r, 0, 90);
-    buttonPath->AddArc(rf.X, rf.Y + rf.Height - r, r, r, 90, 90);
-    buttonPath->CloseFigure();
-
-    if (hBrushBg) DeleteObject(hBrushBg);
-    hBrushBg = CreateSolidBrush(bgCol);
-    BOOL useDarkMode = DarkMode;
-    DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
+    SafeRelease(&pTextFormatBody);
+    CreateTextFormats(hwnd); 
+    SafeRelease(&pBitmapLogo);
 }
 
-inline IStream* CreateStreamOnResource(HMODULE hModule, LPCWSTR lpName, LPCWSTR lpType) {
-    HRSRC hRsrc = FindResourceW(hModule, lpName, lpType);
-    if (!hRsrc) return NULL;
-    
-    DWORD dwSize = SizeofResource(hModule, hRsrc);
-    HGLOBAL hGlobal = LoadResource(hModule, hRsrc);
-    if (!hGlobal) return NULL;
+inline void logoCreation(HWND hwnd, int resourceNumber) {
+    SafeRelease(&pBitmapLogo);
 
-    void* pBuffer = LockResource(hGlobal);
-    
-    return SHCreateMemStream((BYTE*)pBuffer, dwSize);
-}
-
-inline void bitmapCache(HBITMAP hBmpRes, int bmpWidth, int bmpHeight, bool isDarkModeEnabled) {
-    if (!hBmpRes) return;
-    if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
-
-    cachedLogo = new Bitmap(bmpWidth, bmpHeight, PixelFormat32bppARGB);
-    Bitmap tempBmp(hBmpRes, NULL);
-    Graphics g(cachedLogo);
-
-    if (compCheck < 10240) {
-        ImageAttributes imgAttr;
-        
-        Color lowGray(200, 200, 200);
-        Color highGray(255, 255, 255);
-        imgAttr.SetColorKey(lowGray, highGray, ColorAdjustTypeBitmap);
-
-        g.DrawImage(&tempBmp, Rect(0, 0, bmpWidth, bmpHeight), 0, 0, bmpWidth, bmpHeight, UnitPixel, &imgAttr);
-        return;
-    }
-
-    Rect rect(0, 0, bmpWidth, bmpHeight);
-    BitmapData srcData, dstData;
-
-    tempBmp.LockBits(&rect, ImageLockModeRead, PixelFormat32bppARGB, &srcData);
-    cachedLogo->LockBits(&rect, ImageLockModeWrite, PixelFormat32bppARGB, &dstData);
-
-    DWORD* srcPixels = (DWORD*)srcData.Scan0;
-    DWORD* dstPixels = (DWORD*)dstData.Scan0;
-
-    DWORD baseR = isDarkModeEnabled ? 255 : 0;
-    DWORD baseG = isDarkModeEnabled ? 255 : 0;
-    DWORD baseB = isDarkModeEnabled ? 255 : 0;
-    DWORD blueR = 0, blueG = 120, blueB = 215;
-
-    for (int i = 0; i < bmpWidth * bmpHeight; i++) {
-        DWORD pixel = srcPixels[i];
-        
-        BYTE b = (pixel & 0x000000FF);
-        BYTE g = (pixel & 0x0000FF00) >> 8;
-        BYTE r = (pixel & 0x00FF0000) >> 16;
-
-        int brightness = (r + g + b) / 3;
-        int maxVal = std::max(r, std::max(g, b));
-        int minVal = std::min(r, std::min(g, b));
-        int diff = maxVal - minVal;
-
-        BYTE outA, outR, outG, outB;
-
-        if (diff > 25) { 
-            float alphaFactor = std::min(1.0f, (float)diff / 25.0f);
-            outA = (BYTE)(alphaFactor * 255.0f);
-            outR = blueR; outG = blueG; outB = blueB;
-        } else {
-            float alpha = 0;
-            if (brightness < 60) alpha = 255.0f;
-            else if (brightness < 150) alpha = ((150.0f - (float)brightness) / (150.0f - 60.0f)) * 255.0f;
-            
-            outA = (BYTE)alpha;
-            outR = baseR; outG = baseG; outB = baseB;
-        }
-
-        dstPixels[i] = (outA << 24) | (outR << 16) | (outG << 8) | outB;
-    }
-
-    tempBmp.UnlockBits(&srcData);
-    cachedLogo->UnlockBits(&dstData);
-}
-
-inline void logoCreation(int resourceNumber){
-    if (imgLogo) { delete imgLogo; imgLogo = nullptr; }
-    if (cachedLogo) { delete cachedLogo; cachedLogo = nullptr; }
-    if (hBmpRes) { DeleteObject(hBmpRes); hBmpRes = NULL; }
-
-    wchar_t systemPath[MAX_PATH];
-    wchar_t dllPath[MAX_PATH];
-    
+    wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
     GetSystemDirectoryW(systemPath, MAX_PATH);
     wsprintfW(dllPath, L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
 
-    HMODULE hLib = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE);
+    // Carichiamo la DLL
+    HMODULE hLib = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (!hLib) return;
 
-    if (hLib) {
-        if (compCheck >= 22000) {
-            IStream* pStream = CreateStreamOnResource(hLib, MAKEINTRESOURCEW(resourceNumber), L"IMAGE");
-            if (pStream) {
-                imgLogo = new Image(pStream);
-                pStream->Release();
-            }
-        } else {
-            hBmpRes = (HBITMAP)LoadImageW(hLib, MAKEINTRESOURCEW(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-            if (hBmpRes) {
-                BITMAP bmp;
-                GetObject(hBmpRes, sizeof(BITMAP), &bmp);
-                bmpWidth = bmp.bmWidth;
-                bmpHeight = bmp.bmHeight;
-                bitmapCache(hBmpRes, bmpWidth, bmpHeight, isDarkModeEnabled);
+    IWICBitmapSource* pFinalSource = nullptr;
+
+    if (compCheck >= 22000) {
+        HRSRC hRsrc = FindResourceW(hLib, MAKEINTRESOURCEW(resourceNumber), L"IMAGE");
+        if (hRsrc) {
+            HGLOBAL hResData = LoadResource(hLib, hRsrc);
+            void* pBuffer = LockResource(hResData);
+            DWORD dwSize = SizeofResource(hLib, hRsrc);
+
+            IWICStream* pStream = nullptr;
+            if (SUCCEEDED(pWICFactory->CreateStream(&pStream))) {
+                pStream->InitializeFromMemory((BYTE*)pBuffer, dwSize);
+                IWICBitmapDecoder* pDecoder = nullptr;
+                if (SUCCEEDED(pWICFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnDemand, &pDecoder))) {
+                    IWICBitmapFrameDecode* pFrame = nullptr;
+                    if (SUCCEEDED(pDecoder->GetFrame(0, &pFrame))) {
+                        IWICFormatConverter* pConverter = nullptr;
+                        if (SUCCEEDED(pWICFactory->CreateFormatConverter(&pConverter))) {
+                            pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
+                            pFinalSource = pConverter;
+                        }
+                        SafeRelease(&pFrame);
+                    }
+                    SafeRelease(&pDecoder);
+                }
+                SafeRelease(&pStream);
             }
         }
-        FreeLibrary(hLib);
+    } else {
+        HBITMAP hBmp = (HBITMAP)LoadImageW(hLib, MAKEINTRESOURCEW(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+        if (hBmp) {
+            IWICBitmap* pWICBitmap = nullptr;
+            if (SUCCEEDED(pWICFactory->CreateBitmapFromHBITMAP(hBmp, NULL, WICBitmapAlphaChannelOption::WICBitmapUseAlpha, &pWICBitmap))) {
+                IWICFormatConverter* pConverter = nullptr;
+                if (SUCCEEDED(pWICFactory->CreateFormatConverter(&pConverter))) {
+                    pConverter->Initialize(pWICBitmap, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
+                    pFinalSource = pConverter;
+                }
+                SafeRelease(&pWICBitmap);
+            }
+            DeleteObject(hBmp);
+        }
     }
+
+    if (pFinalSource) {
+        pRenderTarget->CreateBitmapFromWicBitmap(pFinalSource, NULL, &pBitmapLogo);
+        SafeRelease(&pFinalSource);
+    }
+
+    FreeLibrary(hLib);
 }
 
+inline HRESULT CreateTextFormats(HWND hwnd) {
+    if (pTextFormatBody) return S_OK;
+
+    UINT dpi = GetDpiForWindow(hwnd);
+    float fontSize = ScaleValueF(12.0f, dpi);
+
+    HRESULT hr = pDWriteFactory->CreateTextFormat(
+        L"Segoe UI Variable Text",
+        NULL,
+        DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        fontSize,
+        L"", 
+        &pTextFormatBody
+    );
+
+    if (FAILED(hr)) {
+        hr = pDWriteFactory->CreateTextFormat(
+            L"Segoe UI",
+            NULL,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,
+            fontSize,
+            L"",
+            &pTextFormatBody
+        );
+    }
+    return hr;
+}
+
+inline HRESULT LoadResourceBitmap(HWND hwnd) {
+    if (pBitmapLogo) return S_OK;
+    HRESULT hr = S_FALSE;
+
+    HICON hIcon = (HICON)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(101), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);
+    
+    if (hIcon) {
+        IWICBitmap* pWICBitmap = NULL;
+        hr = pWICFactory->CreateBitmapFromHICON(hIcon, &pWICBitmap);
+        if (SUCCEEDED(hr)) {
+            hr = pRenderTarget->CreateBitmapFromWicBitmap(pWICBitmap, NULL, &pBitmapLogo);
+        }
+        SafeRelease(&pWICBitmap);
+        DestroyIcon(hIcon);
+    }
+    return hr;
+}
+
+inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown = false) {
+    POINT pt = { LOWORD(lp), HIWORD(lp) };
+    bool wasHover = btn.hover;
+    btn.hover = PtInRect(&btn.rect, pt);
+    
+    if (isDown && btn.hover) btn.pressed = true;
+    if (!isDown) btn.pressed = false;
+
+    if (wasHover != btn.hover || isDown) {
+        InvalidateRect(hwnd, &btn.rect, FALSE);
+    }
+}
 #endif
