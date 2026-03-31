@@ -1,11 +1,10 @@
-//BetterWinver 1.6.0
+//BetterWinver 1.7.0
 #ifndef INFOGET_H
 #define INFOGET_H
 
 #include <windows.h>
 #include <winreg.h>
 #include <lmcons.h>
-#include <shlwapi.h>
 
 extern wchar_t NT[64];
 extern wchar_t build[64];
@@ -169,6 +168,13 @@ inline int ScaleValue(int value, UINT dpi) {
 
 inline float ScaleValueF(float value, UINT dpi) {
     return (value * (float)dpi) / 96.0f;
+}
+
+template <class T> void SafeRelease(T **ppT) {
+    if (*ppT) {
+        (*ppT)->Release();
+        *ppT = NULL;
+    }
 }
 
 #endif
