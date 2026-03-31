@@ -1,18 +1,18 @@
-//BetterWinver 1.6.0
+//BetterWinver 1.7.0
 #ifndef FEATURES_H
 #define FEATURES_H
 
 #include <windows.h>
-#include <d2d1.h>
+#include <d2d1_1.h>
 #include <dwrite.h>
 #include <algorithm>
 
-#include "infoGet.h"
+#include "infoGet.hpp"
 
 extern int compCheck;
 extern bool isDarkModeEnabled;
 extern ID2D1Factory* pD2DFactory;
-extern ID2D1DCRenderTarget* pRenderTarget;
+extern ID2D1HwndRenderTarget* pRenderTarget;
 
 extern ID2D1SolidColorBrush* pTextBrush;
 extern ID2D1SolidColorBrush* pLinePenD2D;
@@ -40,13 +40,22 @@ inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown);
 
 inline HRESULT CreateDeviceResources(HWND hwnd) {
     HRESULT hr = S_OK;
+    UINT dpi = GetDpiForWindow(hwnd);
     if (!pRenderTarget) {
-        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-            D2D1_RENDER_TARGET_TYPE_DEFAULT, 
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 
-            0, 0, D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE, D2D1_FEATURE_LEVEL_DEFAULT);
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
 
-        hr = pD2DFactory->CreateDCRenderTarget(&props, &pRenderTarget);
+        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+            D2D1_RENDER_TARGET_TYPE_HARDWARE,
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            96.0f, 96.0f
+        );
+
+        D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProps = D2D1::HwndRenderTargetProperties(hwnd, size);
+        hwndProps.presentOptions = D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS;
+
+        hr = pD2DFactory->CreateHwndRenderTarget(props, hwndProps, &pRenderTarget);
         
         if (SUCCEEDED(hr)) {
             pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pTextBrush);
@@ -61,6 +70,9 @@ inline HRESULT CreateDeviceResources(HWND hwnd) {
         
         pTextBrush->SetColor(textColor);
         pLinePenD2D->SetColor(lineColor);
+
+        int resourceNumber = (compCheck >= 10240) ? 2123 : 2121;
+        logoCreation(hwnd, resourceNumber);
         
         hr = CreateTextFormats(hwnd);
         LoadResourceBitmap(hwnd);
@@ -68,7 +80,6 @@ inline HRESULT CreateDeviceResources(HWND hwnd) {
     
     RECT rc;
     GetClientRect(hwnd, &rc);
-    UINT dpi = GetDpiForWindow(hwnd);
     float margin = ScaleValueF(30.0f, dpi);
     int btnW = ScaleValue(75, dpi);
     int btnH = ScaleValue(24, dpi);
@@ -89,18 +100,19 @@ inline void DiscardDeviceResources() {
 }
 
 inline void windowTheme(HWND hwnd) {
-    if (compCheck >= 22000) {
-        BOOL dark = isDarkModeEnabled;
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
+    BOOL dark = isDarkModeEnabled;
+    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
 
-        int backdropType = DWMSBT_MAINWINDOW; 
-        DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
-        
-        MARGINS margins = {-1, -1, -1, -1};
-        DwmExtendFrameIntoClientArea(hwnd, &margins);
+    if (compCheck >= 10240) {
+        if (compCheck >= 22000) {
+            int backdropType = DWMSBT_MAINWINDOW; 
+            DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+
+            MARGINS margins = {-1, -1, -1, -1};
+            DwmExtendFrameIntoClientArea(hwnd, &margins);
+        }
     }
 
-    DiscardDeviceResources();
     RECT rc;
     GetClientRect(hwnd, &rc);
     UINT dpi = GetDpiForWindow(hwnd);
@@ -120,13 +132,12 @@ inline void windowTheme(HWND hwnd) {
 }
 
 inline void logoCreation(HWND hwnd, int resourceNumber) {
-    SafeRelease(&pBitmapLogo);
+    if (pBitmapLogo) return;
 
     wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
     GetSystemDirectoryW(systemPath, MAX_PATH);
     wsprintfW(dllPath, L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
 
-    // Carichiamo la DLL
     HMODULE hLib = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
     if (!hLib) return;
 
@@ -175,7 +186,15 @@ inline void logoCreation(HWND hwnd, int resourceNumber) {
     }
 
     if (pFinalSource) {
-        pRenderTarget->CreateBitmapFromWicBitmap(pFinalSource, NULL, &pBitmapLogo);
+        float dpiX, dpiY;
+        pRenderTarget->GetDpi(&dpiX, &dpiY);
+
+        D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
+            pRenderTarget->GetPixelFormat(),
+            dpiX, dpiY
+        );
+
+        pRenderTarget->CreateBitmapFromWicBitmap(pFinalSource, &props, &pBitmapLogo);
         SafeRelease(&pFinalSource);
     }
 
