@@ -1,11 +1,11 @@
-//BetterWinver 1.5.0
+//BetterWinver 1.7.0
 #ifndef TRANSLATION_H
 #define TRANSLATION_H
 
 #include <windows.h>
 #include <shlwapi.h>
 
-#include "infoGet.h"
+#include "infoGet.hpp"
 
 static wchar_t formattedString[2048];
 
@@ -31,16 +31,26 @@ inline LPCWSTR string_2() {
 
 inline LPCWSTR string_3() {
     if (lstrcmpW(GetLang(), L"0410") == 0)
+        return L"Si è verificato un errore fatale durante l'avvio di un componente critico del programma";
+    return L"An error has occured during the starting of a critical component of the program";
+}
+
+inline LPCWSTR string_4() {
+    if (lstrcmpW(GetLang(), L"0410") == 0)
+        return L"Errore Fatale";
+    return L"Fatal Error";
+}
+
+inline LPCWSTR string_5() {
+    if (lstrcmpW(GetLang(), L"0410") == 0)
         return L" Informazioni su Windows";
     return L" About Windows";
 }
 
-inline LPCWSTR string_4() {
-    bool isIt = (lstrcmpW(GetLang(), L"0410") == 0);
-    
+inline LPCWSTR string_6() {
     formattedString[0] = L'\0';
 
-    if (isIt) {
+    if (lstrcmpW(GetLang(), L"0410") == 0) {
         wnsprintf(formattedString, 2048,
             L"Microsoft %s %s\n"
             L"Versione NT %s (build SO %s)\n"
