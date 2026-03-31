@@ -1,27 +1,19 @@
-//BetterWinver 1.6.0
+//BetterWinver 1.7.0
 #include <windows.h>
 #include <dwmapi.h>
-#include <shlwapi.h>
-#include <d2d1.h>
+#include <d2d1_1.h>
 #include <dwrite.h>
 #include <wincodec.h>
 
-template <class T> void SafeRelease(T **ppT) {
-    if (*ppT) {
-        (*ppT)->Release();
-        *ppT = NULL;
-    }
-}
-
-#include "infoGet.h"
-#include "features.h"
-#include "translation.h"
+#include "infoGet.hpp"
+#include "features.hpp"
+#include "translation.hpp"
 
 ID2D1Factory* pD2DFactory = nullptr;
 IDWriteFactory* pDWriteFactory = nullptr;
 IWICImagingFactory* pWICFactory = nullptr;
 
-ID2D1DCRenderTarget* pRenderTarget = nullptr;
+ID2D1HwndRenderTarget* pRenderTarget = nullptr;
 
 ID2D1SolidColorBrush* pBrushSfondo = nullptr;
 ID2D1SolidColorBrush* pTextBrush = nullptr;
@@ -29,6 +21,7 @@ ID2D1SolidColorBrush* pLinePenD2D = nullptr;
 ID2D1SolidColorBrush* pBtnBrush = nullptr;
 
 ID2D1Bitmap* pBitmapLogo = nullptr;
+ID2D1Bitmap* pBackBuffer = nullptr;
 
 IDWriteTextFormat* pTextFormatTitle = nullptr; 
 IDWriteTextFormat* pTextFormatBody = nullptr;
@@ -44,13 +37,6 @@ bool isDarkModeEnabled;
 CustomButton btn = {};
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    int resourceNumber;
-    if (compCheck >= 10240) {
-        resourceNumber = 2123;
-    } else { 
-        resourceNumber = 2121;
-    }
-
     switch (msg) {
         case WM_CREATE: {
             HMENU hSysMenu = GetSystemMenu(hwnd, FALSE);
@@ -63,40 +49,36 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
 
         case WM_PAINT: {
-            DarkModeCheck();
             PAINTSTRUCT ps;
             BeginPaint(hwnd, &ps);
-            HRESULT hr = CreateDeviceResources(hwnd);
-            
-            if (SUCCEEDED(hr)) {
+
+            if (SUCCEEDED(CreateDeviceResources(hwnd))) {
                 RECT rc;
                 GetClientRect(hwnd, &rc);
-                
-                if (!pBitmapLogo) logoCreation(hwnd, resourceNumber);
 
-                UINT dpi = GetDpiForWindow(hwnd);
-                float margin = ScaleValueF(30.0f, dpi);
-
-                pRenderTarget->BindDC(ps.hdc, &rc);
                 pRenderTarget->BeginDraw();
-                pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
                 pTextFormatBody->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                 pTextFormatBody->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
+                pRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
+                
                 if (compCheck < 22000) {
                     pRenderTarget->Clear(isDarkModeEnabled ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
                     pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
                 } else {
                     pRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
                     pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-                }
+                } 
+
+                UINT dpi = GetDpiForWindow(hwnd);
+                float margin = ScaleValueF(30.0f, dpi);
 
                 //Logo
                 if (pBitmapLogo) {
                     D2D1_SIZE_F size = pBitmapLogo->GetSize();
                     float destW = (float)rc.right - (margin * 2);
                     float destH = (destW / size.width) * size.height;
-                    pRenderTarget->DrawBitmap(pBitmapLogo, D2D1::RectF(margin, ScaleValueF(5.0f, dpi), margin + destW, ScaleValueF(5.0f, dpi) + destH), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    pRenderTarget->DrawBitmap(pBitmapLogo, D2D1::RectF(margin, ScaleValueF(5.0f, dpi), margin + destW, ScaleValueF(5.0f, dpi) + destH), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, NULL);
                 }
 
                 //Line
@@ -105,7 +87,7 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
                 //Text
                 D2D1_RECT_F layoutRect = D2D1::RectF(margin, ScaleValueF(90.0f, dpi), (float)rc.right - margin, (float)rc.bottom - ScaleValueF(70.0f, dpi));
-                pRenderTarget->DrawText(string_4(), (UINT32)wcslen(string_4()), pTextFormatBody, layoutRect, pTextBrush);
+                pRenderTarget->DrawText(string_6(), (UINT32)wcslen(string_6()), pTextFormatBody, layoutRect, pTextBrush);
 
                 //OK Button
                 D2D1_RECT_F bRect = D2D1::RectF((float)btn.rect.left, (float)btn.rect.top, (float)btn.rect.right, (float)btn.rect.bottom);
@@ -121,13 +103,14 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pTextFormatBody->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 pRenderTarget->DrawText(L"OK", 2, pTextFormatBody, bRect, pTextBrush);
 
-                hr = pRenderTarget->EndDraw();
-                if (hr == D2DERR_RECREATE_TARGET) DiscardDeviceResources();
+                if (pRenderTarget->EndDraw() == D2DERR_RECREATE_TARGET) {
+                    DiscardDeviceResources();
+                }
             }
             EndPaint(hwnd, &ps);
             return 0;
         }
-
+        
         case WM_SETCURSOR: {
             SetCursor(LoadCursor(NULL, IDC_ARROW));
             return TRUE; 
@@ -175,6 +158,10 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
         }
 
+        case WM_ERASEBKGND: {
+            return 1;
+        }
+
         case WM_SETTINGCHANGE: {
             DarkModeCheck(); 
             windowTheme(hwnd);
@@ -186,6 +173,8 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         
         case WM_DPICHANGED: {
             LPRECT lprcNewScale = (LPRECT)lp;
+
+            DiscardDeviceResources();
             
             SafeRelease(&pTextFormatBody); 
             SafeRelease(&pBitmapLogo); 
@@ -253,7 +242,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     }
 
     if (FAILED(hr)) {
-        MessageBoxW(NULL, L"A critical component has failed to start", L"Error", MB_OK);
+        MessageBoxW(NULL, string_3(), string_4(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
         return 0;
     }
 
@@ -264,16 +253,16 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     wc.lpszClassName = L"BetterWinver";
     RegisterClassW(&wc);
 
-    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, L"BetterWinver", string_3(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, hInst, NULL);
+    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, L"BetterWinver", string_5(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, hInst, NULL);
 
     if (hwnd) {
+        windowTheme(hwnd);
         UINT dpi = GetDpiForWindow(hwnd);
-        
         RECT rc = { 0, 0, ScaleValue(400, dpi), ScaleValue(390, dpi) };
         AdjustWindowRectEx(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, WS_EX_DLGMODALFRAME);
+        
         SetWindowPos(hwnd, NULL, CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-        windowTheme(hwnd);
-
+        
         ShowWindow(hwnd, nShow);
         UpdateWindow(hwnd);
     }
