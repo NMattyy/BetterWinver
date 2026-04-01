@@ -1,4 +1,4 @@
-//BetterWinver 1.7.0
+//BetterWinver 1.7.1
 #ifndef TRANSLATION_H
 #define TRANSLATION_H
 
@@ -6,6 +6,8 @@
 #include <shlwapi.h>
 
 #include "infoGet.hpp"
+
+LPCWSTR string_version = L"1.7.1";
 
 static wchar_t formattedString[2048];
 
