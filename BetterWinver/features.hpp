@@ -1,266 +1,206 @@
-//BetterWinver 1.7.0
-#ifndef FEATURES_H
-#define FEATURES_H
+//BetterWinver 1.7.1
+#ifndef INFOGET_H
+#define INFOGET_H
 
 #include <windows.h>
-#include <d2d1_1.h>
-#include <dwrite.h>
-#include <algorithm>
+#include <winreg.h>
+#include <lmcons.h>
 
-#include "infoGet.hpp"
+extern wchar_t NT[64];
+extern wchar_t build[64];
+extern wchar_t OSName[128];
+extern wchar_t commercialVersion[64];
+extern wchar_t user[128];
 
 extern int compCheck;
+
 extern bool isDarkModeEnabled;
-extern ID2D1Factory* pD2DFactory;
-extern ID2D1HwndRenderTarget* pRenderTarget;
 
-extern ID2D1SolidColorBrush* pTextBrush;
-extern ID2D1SolidColorBrush* pLinePenD2D;
-extern ID2D1SolidColorBrush* pBtnBrush;
+extern int argc;
+extern LPWSTR* argv;
 
-extern IDWriteFactory* pDWriteFactory;
-extern IDWriteTextFormat* pTextFormatBody;
-extern ID2D1Bitmap* pBitmapLogo;
-extern IWICImagingFactory* pWICFactory;
+//Informations
+inline void GetRegString(HKEY hRoot, LPCWSTR subKey, LPCWSTR valueName, wchar_t* outBuffer, DWORD bufferSize) {
+    HKEY hKey;
+    outBuffer[0] = L'\0';
+    if (RegOpenKeyExW(hRoot, subKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, valueName, NULL, NULL, (LPBYTE)outBuffer, &bufferSize);
+        RegCloseKey(hKey);
+    }
+}
 
-struct CustomButton {
-    RECT rect;
-    bool hover;
-    bool pressed;
-};
-extern CustomButton btn;
-
-inline HRESULT CreateDeviceResources(HWND hwnd);
-inline void DiscardDeviceResources();
-inline void windowTheme(HWND hwnd);
-inline void logoCreation(HWND hwnd, int resourceNumber);
-inline HRESULT CreateTextFormats(HWND hwnd);
-inline HRESULT LoadResourceBitmap(HWND hwnd);
-inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown);
-
-inline HRESULT CreateDeviceResources(HWND hwnd) {
-    HRESULT hr = S_OK;
-    UINT dpi = GetDpiForWindow(hwnd);
-    if (!pRenderTarget) {
-        RECT rc;
-        GetClientRect(hwnd, &rc);
-        D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-
-        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-            D2D1_RENDER_TARGET_TYPE_HARDWARE,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-            96.0f, 96.0f
-        );
-
-        D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProps = D2D1::HwndRenderTargetProperties(hwnd, size);
-        hwndProps.presentOptions = D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS;
-
-        hr = pD2DFactory->CreateHwndRenderTarget(props, hwndProps, &pRenderTarget);
-        
-        if (SUCCEEDED(hr)) {
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pTextBrush);
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pLinePenD2D);
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0,0), &pBtnBrush);
+inline void ntGet(wchar_t* out, DWORD size) {
+    HKEY hKey;
+    DWORD major = 0, minor = 0;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD dSize = sizeof(DWORD);
+        if (RegQueryValueExW(hKey, L"CurrentMajorVersionNumber", NULL, NULL, (LPBYTE)&major, &dSize) == ERROR_SUCCESS) {
+            RegQueryValueExW(hKey, L"CurrentMinorVersionNumber", NULL, NULL, (LPBYTE)&minor, &dSize);
+            wsprintfW(out, L"%d.%d", major, minor);
+        } else {
+            DWORD bSize = size * sizeof(wchar_t);
+            RegQueryValueExW(hKey, L"CurrentVersion", NULL, NULL, (LPBYTE)out, &bSize);
         }
+        RegCloseKey(hKey);
     }
-
-    if (SUCCEEDED(hr) && pTextBrush && pLinePenD2D) {
-        D2D1_COLOR_F textColor = isDarkModeEnabled ? D2D1::ColorF(D2D1::ColorF::White) : D2D1::ColorF(D2D1::ColorF::Black);
-        D2D1_COLOR_F lineColor = isDarkModeEnabled ? D2D1::ColorF(0.3f, 0.3f, 0.3f) : D2D1::ColorF(0.8f, 0.8f, 0.8f);
-        
-        pTextBrush->SetColor(textColor);
-        pLinePenD2D->SetColor(lineColor);
-
-        int resourceNumber = (compCheck >= 10240) ? 2123 : 2121;
-        logoCreation(hwnd, resourceNumber);
-        
-        hr = CreateTextFormats(hwnd);
-        LoadResourceBitmap(hwnd);
-    }
-    
-    RECT rc;
-    GetClientRect(hwnd, &rc);
-    float margin = ScaleValueF(30.0f, dpi);
-    int btnW = ScaleValue(75, dpi);
-    int btnH = ScaleValue(24, dpi);
-    
-    btn.rect.right = (long)(rc.right - margin);
-    btn.rect.left = (long)(btn.rect.right - btnW);
-    btn.rect.bottom = (long)(rc.bottom - ScaleValue(20, dpi));
-    btn.rect.top = (long)(btn.rect.bottom - btnH);
-
-    return hr;
 }
 
-inline void DiscardDeviceResources() {
-    SafeRelease(&pRenderTarget);
-    SafeRelease(&pTextBrush);
-    SafeRelease(&pLinePenD2D);
-    SafeRelease(&pBtnBrush);
-}
-
-inline void windowTheme(HWND hwnd) {
-    BOOL dark = isDarkModeEnabled;
-    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
-
-    if (compCheck >= 10240) {
-        if (compCheck >= 22000) {
-            int backdropType = DWMSBT_MAINWINDOW; 
-            DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
-
-            MARGINS margins = {-1, -1, -1, -1};
-            DwmExtendFrameIntoClientArea(hwnd, &margins);
+inline void buildGet(wchar_t* out, DWORD size) {
+    HKEY hKey;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD bSize = size * sizeof(wchar_t);
+        RegQueryValueExW(hKey, L"CurrentBuild", NULL, NULL, (LPBYTE)out, &bSize);
+        
+        DWORD ubr = 0, uSize = sizeof(DWORD);
+        if (RegQueryValueExW(hKey, L"UBR", NULL, NULL, (LPBYTE)&ubr, &uSize) == ERROR_SUCCESS) {
+            wchar_t tmp[16];
+            wsprintfW(tmp, L".%d", ubr);
+            lstrcatW(out, tmp);
         }
+        RegCloseKey(hKey);
     }
-
-    RECT rc;
-    GetClientRect(hwnd, &rc);
-    UINT dpi = GetDpiForWindow(hwnd);
-
-    float margin = ScaleValueF(30.0f, dpi);
-    int btnW = ScaleValue(75, dpi);
-    int btnH = ScaleValue(24, dpi);
-
-    btn.rect.right = (long)(rc.right - margin);
-    btn.rect.left = (long)(btn.rect.right - btnW);
-    btn.rect.bottom = (long)(rc.bottom - ScaleValue(20, dpi));
-    btn.rect.top = (long)(btn.rect.bottom - btnH);
-
-    SafeRelease(&pTextFormatBody);
-    CreateTextFormats(hwnd); 
-    SafeRelease(&pBitmapLogo);
 }
 
-inline void logoCreation(HWND hwnd, int resourceNumber) {
-    if (pBitmapLogo) return;
+inline void OSGet(wchar_t* out, DWORD size) {
+    HKEY hKey;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        wchar_t buffer[256] = {0};
+        DWORD bSize = sizeof(buffer);
 
-    wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
-    GetSystemDirectoryW(systemPath, MAX_PATH);
-    wsprintfW(dllPath, L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
-
-    HMODULE hLib = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
-    if (!hLib) return;
-
-    IWICBitmapSource* pFinalSource = nullptr;
-
-    if (compCheck >= 22000) {
-        HRSRC hRsrc = FindResourceW(hLib, MAKEINTRESOURCEW(resourceNumber), L"IMAGE");
-        if (hRsrc) {
-            HGLOBAL hResData = LoadResource(hLib, hRsrc);
-            void* pBuffer = LockResource(hResData);
-            DWORD dwSize = SizeofResource(hLib, hRsrc);
-
-            IWICStream* pStream = nullptr;
-            if (SUCCEEDED(pWICFactory->CreateStream(&pStream))) {
-                pStream->InitializeFromMemory((BYTE*)pBuffer, dwSize);
-                IWICBitmapDecoder* pDecoder = nullptr;
-                if (SUCCEEDED(pWICFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnDemand, &pDecoder))) {
-                    IWICBitmapFrameDecode* pFrame = nullptr;
-                    if (SUCCEEDED(pDecoder->GetFrame(0, &pFrame))) {
-                        IWICFormatConverter* pConverter = nullptr;
-                        if (SUCCEEDED(pWICFactory->CreateFormatConverter(&pConverter))) {
-                            pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
-                            pFinalSource = pConverter;
-                        }
-                        SafeRelease(&pFrame);
-                    }
-                    SafeRelease(&pDecoder);
+        if (compCheck < 22000) {
+            if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
+                lstrcpynW(out, buffer, size);
+            }
+        } else {
+            if (RegQueryValueExW(hKey, L"EditionID", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
+                if (lstrcmpiW(buffer, L"Professional") == 0) {
+                    lstrcpynW(out, L"Windows 11 Pro", size);
+                } else {
+                    wsprintfW(out, L"Windows 11 %s", buffer);
                 }
-                SafeRelease(&pStream);
             }
         }
+        RegCloseKey(hKey);
     } else {
-        HBITMAP hBmp = (HBITMAP)LoadImageW(hLib, MAKEINTRESOURCEW(resourceNumber), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
-        if (hBmp) {
-            IWICBitmap* pWICBitmap = nullptr;
-            if (SUCCEEDED(pWICFactory->CreateBitmapFromHBITMAP(hBmp, NULL, WICBitmapAlphaChannelOption::WICBitmapUseAlpha, &pWICBitmap))) {
-                IWICFormatConverter* pConverter = nullptr;
-                if (SUCCEEDED(pWICFactory->CreateFormatConverter(&pConverter))) {
-                    pConverter->Initialize(pWICBitmap, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
-                    pFinalSource = pConverter;
-                }
-                SafeRelease(&pWICBitmap);
+        lstrcpynW(out, L"Windows", size);
+    }
+}
+
+inline void commercialVersionGet(wchar_t* out, DWORD size) {
+    out[0] = L'\0';
+    if (compCheck < 19042) return;
+
+    HKEY hKey;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD bSize = size * sizeof(wchar_t);
+        RegQueryValueExW(hKey, L"DisplayVersion", NULL, NULL, (LPBYTE)out, &bSize);
+        RegCloseKey(hKey);
+    }
+}
+
+inline int userGet(wchar_t* out, DWORD size) {
+    wchar_t userName[UNLEN + 1] = {0};
+    DWORD userName_len = UNLEN + 1;
+
+    if (argv) {
+        for (int i = 1; i < argc; i++) {
+            if (lstrcmpiW(argv[i], L"-customusername") == 0) {
+                lstrcpynW(out, argv[i+1], size);
+                return 0;
             }
-            DeleteObject(hBmp);
+        }
+    }
+    
+    if (GetUserNameW(userName, &userName_len)) {
+        lstrcpynW(out, userName, size);
+    } else {
+        lstrcpynW(out, L"Unknown", size);
+    }
+    return 0;
+}
+
+//Settings
+inline UINT GetSystemDPI() {
+    UINT dpi = 96;
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    
+    typedef UINT (WINAPI* GetDpiForSystemProc)();
+    GetDpiForSystemProc pGetDpiForSystem = (GetDpiForSystemProc)GetProcAddress(hUser32, "GetDpiForSystem");
+    
+    if (pGetDpiForSystem) {
+        dpi = pGetDpiForSystem();
+    } else {
+        HDC hdc = GetDC(NULL);
+        if (hdc) {
+            dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+            ReleaseDC(NULL, hdc);
+        }
+    }
+    return dpi;
+}
+
+inline UINT GetDpiForWindow(HWND hwnd) {
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    if (hUser32) {
+        typedef UINT (WINAPI* GetDpiForWindowProc)(HWND);
+        GetDpiForWindowProc pGetDpiForWindow = (GetDpiForWindowProc)GetProcAddress(hUser32, "GetDpiForWindow");
+        
+        if (pGetDpiForWindow) {
+            return pGetDpiForWindow(hwnd);
+        }
+    }
+    return GetSystemDPI(); 
+}
+
+inline int DarkModeCheck() {
+    if (argv) {
+        for (int i = 1; i < argc; i++) {
+            if (lstrcmpiW(argv[i], L"-forcedarkmode") == 0) {
+                isDarkModeEnabled = true;
+                return 0;
+            } else if (lstrcmpiW(argv[i], L"-forcelightmode") == 0) {
+                isDarkModeEnabled = false;
+                return 0;
+            }
         }
     }
 
-    if (pFinalSource) {
-        float dpiX, dpiY;
-        pRenderTarget->GetDpi(&dpiX, &dpiY);
+    HKEY hKey;
+    DWORD value = 1; //1 Light, 0 Dark;
+    DWORD valueSize = sizeof(value);
 
-        D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
-            pRenderTarget->GetPixelFormat(),
-            dpiX, dpiY
-        );
-
-        pRenderTarget->CreateBitmapFromWicBitmap(pFinalSource, &props, &pBitmapLogo);
-        SafeRelease(&pFinalSource);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &valueSize);
+        RegCloseKey(hKey);
     }
-
-    FreeLibrary(hLib);
+    isDarkModeEnabled = (value == 0);
+    return 0;
 }
 
-inline HRESULT CreateTextFormats(HWND hwnd) {
-    if (pTextFormatBody) return S_OK;
-
-    UINT dpi = GetDpiForWindow(hwnd);
-    float fontSize = ScaleValueF(12.0f, dpi);
-
-    HRESULT hr = pDWriteFactory->CreateTextFormat(
-        L"Segoe UI Variable Text",
-        NULL,
-        DWRITE_FONT_WEIGHT_NORMAL,
-        DWRITE_FONT_STYLE_NORMAL,
-        DWRITE_FONT_STRETCH_NORMAL,
-        fontSize,
-        L"", 
-        &pTextFormatBody
-    );
-
-    if (FAILED(hr)) {
-        hr = pDWriteFactory->CreateTextFormat(
-            L"Segoe UI",
-            NULL,
-            DWRITE_FONT_WEIGHT_NORMAL,
-            DWRITE_FONT_STYLE_NORMAL,
-            DWRITE_FONT_STRETCH_NORMAL,
-            fontSize,
-            L"",
-            &pTextFormatBody
-        );
-    }
-    return hr;
-}
-
-inline HRESULT LoadResourceBitmap(HWND hwnd) {
-    if (pBitmapLogo) return S_OK;
-    HRESULT hr = S_FALSE;
-
-    HICON hIcon = (HICON)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(101), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);
-    
-    if (hIcon) {
-        IWICBitmap* pWICBitmap = NULL;
-        hr = pWICFactory->CreateBitmapFromHICON(hIcon, &pWICBitmap);
-        if (SUCCEEDED(hr)) {
-            hr = pRenderTarget->CreateBitmapFromWicBitmap(pWICBitmap, NULL, &pBitmapLogo);
-        }
-        SafeRelease(&pWICBitmap);
-        DestroyIcon(hIcon);
-    }
-    return hr;
-}
-
-inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown = false) {
-    POINT pt = { LOWORD(lp), HIWORD(lp) };
-    bool wasHover = btn.hover;
-    btn.hover = PtInRect(&btn.rect, pt);
-    
-    if (isDown && btn.hover) btn.pressed = true;
-    if (!isDown) btn.pressed = false;
-
-    if (wasHover != btn.hover || isDown) {
-        InvalidateRect(hwnd, &btn.rect, FALSE);
+inline void currentLanguage(wchar_t* out, DWORD size) {
+    lstrcpynW(out, L"0409", size); // Default English-US
+    HKEY hKey;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD bSize = size * sizeof(wchar_t);
+        RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)out, &bSize);
+        RegCloseKey(hKey);
     }
 }
+
+//Utility
+inline int ScaleValue(int value, UINT dpi) {
+    return MulDiv(value, dpi, 96);
+}
+
+inline float ScaleValueF(float value, UINT dpi) {
+    return (value * (float)dpi) / 96.0f;
+}
+
+template <class T> void SafeRelease(T **ppT) {
+    if (*ppT) {
+        (*ppT)->Release();
+        *ppT = NULL;
+    }
+}
+
 #endif
