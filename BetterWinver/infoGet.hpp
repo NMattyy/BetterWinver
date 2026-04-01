@@ -1,4 +1,4 @@
-//BetterWinver 1.7.0
+//BetterWinver 1.7.1
 #ifndef INFOGET_H
 #define INFOGET_H
 
@@ -16,7 +16,10 @@ extern int compCheck;
 
 extern bool isDarkModeEnabled;
 
-//Information
+extern int argc;
+extern LPWSTR* argv;
+
+//Informations
 inline void GetRegString(HKEY hRoot, LPCWSTR subKey, LPCWSTR valueName, wchar_t* outBuffer, DWORD bufferSize) {
     HKEY hKey;
     outBuffer[0] = L'\0';
@@ -95,15 +98,25 @@ inline void commercialVersionGet(wchar_t* out, DWORD size) {
     }
 }
 
-inline void userGet(wchar_t* out, DWORD size) {
+inline int userGet(wchar_t* out, DWORD size) {
     wchar_t userName[UNLEN + 1] = {0};
     DWORD userName_len = UNLEN + 1;
 
+    if (argv) {
+        for (int i = 1; i < argc; i++) {
+            if (lstrcmpiW(argv[i], L"-customusername") == 0) {
+                lstrcpynW(out, argv[i+1], size);
+                return 0;
+            }
+        }
+    }
+    
     if (GetUserNameW(userName, &userName_len)) {
         lstrcpynW(out, userName, size);
     } else {
         lstrcpynW(out, L"Unknown", size);
     }
+    return 0;
 }
 
 //Settings
@@ -139,7 +152,19 @@ inline UINT GetDpiForWindow(HWND hwnd) {
     return GetSystemDPI(); 
 }
 
-inline void DarkModeCheck() {
+inline int DarkModeCheck() {
+    if (argv) {
+        for (int i = 1; i < argc; i++) {
+            if (lstrcmpiW(argv[i], L"-forcedarkmode") == 0) {
+                isDarkModeEnabled = true;
+                return 0;
+            } else if (lstrcmpiW(argv[i], L"-forcelightmode") == 0) {
+                isDarkModeEnabled = false;
+                return 0;
+            }
+        }
+    }
+
     HKEY hKey;
     DWORD value = 1; //1 Light, 0 Dark;
     DWORD valueSize = sizeof(value);
@@ -149,6 +174,7 @@ inline void DarkModeCheck() {
         RegCloseKey(hKey);
     }
     isDarkModeEnabled = (value == 0);
+    return 0;
 }
 
 inline void currentLanguage(wchar_t* out, DWORD size) {
