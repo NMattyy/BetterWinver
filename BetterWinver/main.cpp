@@ -1,4 +1,4 @@
-//BetterWinver 1.7.0
+//BetterWinver 1.7.1
 #include <windows.h>
 #include <dwmapi.h>
 #include <d2d1_1.h>
@@ -21,7 +21,6 @@ ID2D1SolidColorBrush* pLinePenD2D = nullptr;
 ID2D1SolidColorBrush* pBtnBrush = nullptr;
 
 ID2D1Bitmap* pBitmapLogo = nullptr;
-ID2D1Bitmap* pBackBuffer = nullptr;
 
 IDWriteTextFormat* pTextFormatTitle = nullptr; 
 IDWriteTextFormat* pTextFormatBody = nullptr;
@@ -34,7 +33,15 @@ wchar_t user[128];
 int compCheck;
 bool isDarkModeEnabled;
 
+int argc = 0;
+LPWSTR* argv = nullptr;
+
 CustomButton btn = {};
+
+LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow);
+void AboutWindow(HWND hParent, HINSTANCE hInst);
+LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
@@ -61,25 +68,24 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pTextFormatBody->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
                 pRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
-                
-                if (compCheck < 22000) {
-                    pRenderTarget->Clear(isDarkModeEnabled ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
-                    pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
-                } else {
-                    pRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
-                    pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-                } 
+
+                clearBackground(pRenderTarget);
 
                 UINT dpi = GetDpiForWindow(hwnd);
                 float margin = ScaleValueF(30.0f, dpi);
 
+                pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+
                 //Logo
                 if (pBitmapLogo) {
                     D2D1_SIZE_F size = pBitmapLogo->GetSize();
-                    float destW = (float)rc.right - (margin * 2);
-                    float destH = (destW / size.width) * size.height;
-                    pRenderTarget->DrawBitmap(pBitmapLogo, D2D1::RectF(margin, ScaleValueF(5.0f, dpi), margin + destW, ScaleValueF(5.0f, dpi) + destH), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, NULL);
+                    int destW = (int)((float)rc.right - (margin * 2));
+                    int destH = (int)(( (float)destW / size.width ) * size.height);
+                    D2D1_RECT_F logoRect = D2D1::RectF((float)margin, (float)ScaleValue(5, dpi), (float)(margin + destW), (float)(ScaleValue(5, dpi) + destH));
+                    pRenderTarget->DrawBitmap(pBitmapLogo, logoRect, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, NULL);
                 }
+
+                pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
                 //Line
                 float lineY = ScaleValueF(75.0f, dpi);
@@ -128,7 +134,7 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (btn.pressed && PtInRect(&btn.rect, pt)) {
                 SendMessage(hwnd, WM_CLOSE, 0, 0);
             }
-            
+
             btn.pressed = false;
             ReleaseCapture();
             InvalidateRect(hwnd, &btn.rect, FALSE);
@@ -200,6 +206,8 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
+    argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
     UINT currentDpi = GetSystemDPI();
     INITCOMMONCONTROLSEX icce;
     icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -263,6 +271,10 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
         
         SetWindowPos(hwnd, NULL, CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
         
+        if (SUCCEEDED(CreateDeviceResources(hwnd))) {
+            ValidateRect(hwnd, NULL); 
+        }
+
         ShowWindow(hwnd, nShow);
         UpdateWindow(hwnd);
     }
@@ -281,5 +293,6 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     SafeRelease(&pBitmapLogo);
     CoUninitialize();
 
+    LocalFree(argv);
     return msg.wParam;
 }
