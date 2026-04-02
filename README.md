@@ -8,6 +8,10 @@
 | BetterWinver è un programma scritto in c++ per Windows 8 x64 e superiori (Pensato per Windows 11) che mira a ricreare l'applicazione "Informazioni di Windows (Winver)" di Microsoft Windows, migliorandone l'aspetto grafico, aggiungendo il tema scuro (Win 10+) o l'effetto Mica dello sfondo (Win 11) e il funzionamento utilizzando le API di windows (WIN32). | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Preview/Windows 11.png?raw=true" width="400"> |
 
 ## Aggiunte future
+Release 1.7.2
+- Aggiunta di una finestra informazioni dell'app ("Informazioni su BetterWinver")
+- Maggiore scalabilità dell'app
+Release 1.8.0
 - Sfondo Acrylic Windows 10
 
 ## Sostituzione a Winver
