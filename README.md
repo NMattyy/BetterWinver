@@ -11,6 +11,7 @@
 Release 1.7.2
 - Aggiunta di una finestra informazioni dell'app ("Informazioni su BetterWinver")
 - Maggiore scalabilità dell'app
+  
 Release 1.8.0
 - Sfondo Acrylic Windows 10
 
