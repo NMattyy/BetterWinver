@@ -1,10 +1,11 @@
-//BetterWinver 1.7.1
+//BetterWinver 1.7.2
 #ifndef INFOGET_H
 #define INFOGET_H
 
 #include <windows.h>
 #include <winreg.h>
 #include <lmcons.h>
+#include <strsafe.h>
 
 extern wchar_t NT[64];
 extern wchar_t build[64];
@@ -36,7 +37,7 @@ inline void ntGet(wchar_t* out, DWORD size) {
         DWORD dSize = sizeof(DWORD);
         if (RegQueryValueExW(hKey, L"CurrentMajorVersionNumber", NULL, NULL, (LPBYTE)&major, &dSize) == ERROR_SUCCESS) {
             RegQueryValueExW(hKey, L"CurrentMinorVersionNumber", NULL, NULL, (LPBYTE)&minor, &dSize);
-            wsprintfW(out, L"%d.%d", major, minor);
+            StringCchPrintfW(out, size, L"%u.%u", major, minor);
         } else {
             DWORD bSize = size * sizeof(wchar_t);
             RegQueryValueExW(hKey, L"CurrentVersion", NULL, NULL, (LPBYTE)out, &bSize);
@@ -54,8 +55,8 @@ inline void buildGet(wchar_t* out, DWORD size) {
         DWORD ubr = 0, uSize = sizeof(DWORD);
         if (RegQueryValueExW(hKey, L"UBR", NULL, NULL, (LPBYTE)&ubr, &uSize) == ERROR_SUCCESS) {
             wchar_t tmp[16];
-            wsprintfW(tmp, L".%d", ubr);
-            lstrcatW(out, tmp);
+            StringCchPrintfW(tmp, ARRAYSIZE(tmp), L".%u", ubr);
+            StringCchCatW(out, size, tmp);
         }
         RegCloseKey(hKey);
     }
@@ -64,25 +65,28 @@ inline void buildGet(wchar_t* out, DWORD size) {
 inline void OSGet(wchar_t* out, DWORD size) {
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        wchar_t buffer[256] = {0};
+        wchar_t buffer[256];
+        SecureZeroMemory(buffer, sizeof(buffer));
         DWORD bSize = sizeof(buffer);
 
         if (compCheck < 22000) {
             if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
-                lstrcpynW(out, buffer, size);
+                StringCchCopyW(out, size, buffer);
             }
         } else {
             if (RegQueryValueExW(hKey, L"EditionID", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
-                if (lstrcmpiW(buffer, L"Professional") == 0) {
-                    lstrcpynW(out, L"Windows 11 Pro", size);
+                if (CompareStringOrdinal(buffer, -1, L"Professional", -1, TRUE) == CSTR_EQUAL) {
+                    StringCchCopyW(out, size, L"Windows 11 Pro"); 
+                } else if (CompareStringOrdinal(buffer, -1, L"Core", -1, TRUE) == CSTR_EQUAL) {
+                    StringCchCopyW(out, size, L"Windows 11 Home"); 
                 } else {
-                    wsprintfW(out, L"Windows 11 %s", buffer);
+                    StringCchPrintfW(out, size, L"Windows 11 %s", buffer);
                 }
             }
         }
         RegCloseKey(hKey);
     } else {
-        lstrcpynW(out, L"Windows", size);
+        StringCchCopyW(out, size, L"Windows");
     }
 }
 
@@ -104,17 +108,19 @@ inline int userGet(wchar_t* out, DWORD size) {
 
     if (argv) {
         for (int i = 1; i < argc; i++) {
-            if (lstrcmpiW(argv[i], L"-customusername") == 0) {
-                lstrcpynW(out, argv[i+1], size);
+            if (CompareStringOrdinal(argv[i], -1, L"-customusername", -1, TRUE) == CSTR_EQUAL) {
+                if (i + 1 < argc) {
+                    StringCchCopyW(out, size, argv[i+1]);
+                }
                 return 0;
             }
         }
     }
     
     if (GetUserNameW(userName, &userName_len)) {
-        lstrcpynW(out, userName, size);
+        StringCchCopyW(out, size, userName);
     } else {
-        lstrcpynW(out, L"Unknown", size);
+        StringCchCopyW(out, size, L"Unknown");
     }
     return 0;
 }
@@ -155,10 +161,10 @@ inline UINT GetDpiForWindow(HWND hwnd) {
 inline int DarkModeCheck() {
     if (argv) {
         for (int i = 1; i < argc; i++) {
-            if (lstrcmpiW(argv[i], L"-forcedarkmode") == 0) {
+            if (CompareStringOrdinal(argv[i], -1, L"-forcedarkmode", -1, TRUE) == CSTR_EQUAL) {
                 isDarkModeEnabled = true;
                 return 0;
-            } else if (lstrcmpiW(argv[i], L"-forcelightmode") == 0) {
+            } else if (CompareStringOrdinal(argv[i], -1, L"-forcelightmode", -1, TRUE) == CSTR_EQUAL) {
                 isDarkModeEnabled = false;
                 return 0;
             }
@@ -166,7 +172,7 @@ inline int DarkModeCheck() {
     }
 
     HKEY hKey;
-    DWORD value = 1; //1 Light, 0 Dark;
+    DWORD value = 1; // 1 Light, 0 Dark;
     DWORD valueSize = sizeof(value);
 
     if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
@@ -178,11 +184,11 @@ inline int DarkModeCheck() {
 }
 
 inline void currentLanguage(wchar_t* out, DWORD size) {
-    lstrcpynW(out, L"0409", size); // Default English-US
+    StringCchCopyW(out, size, L"0409"); // Default English-US
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        DWORD bSize = size * sizeof(wchar_t);
-        RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)out, &bSize);
+        DWORD bSizeInBytes = size * sizeof(wchar_t);
+        RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)out, &bSizeInBytes);
         RegCloseKey(hKey);
     }
 }
@@ -194,13 +200,6 @@ inline int ScaleValue(int value, UINT dpi) {
 
 inline float ScaleValueF(float value, UINT dpi) {
     return (value * (float)dpi) / 96.0f;
-}
-
-template <class T> void SafeRelease(T **ppT) {
-    if (*ppT) {
-        (*ppT)->Release();
-        *ppT = NULL;
-    }
 }
 
 #endif
