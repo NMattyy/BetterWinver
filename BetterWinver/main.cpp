@@ -1,4 +1,4 @@
-//BetterWinver 1.7.1
+//BetterWinver 1.7.2
 #include <windows.h>
 #include <dwmapi.h>
 #include <d2d1_1.h>
@@ -14,34 +14,40 @@ IDWriteFactory* pDWriteFactory = nullptr;
 IWICImagingFactory* pWICFactory = nullptr;
 
 ID2D1HwndRenderTarget* pRenderTarget = nullptr;
+ID2D1HwndRenderTarget* pAboutRenderTarget = nullptr;
 
 ID2D1SolidColorBrush* pBrushSfondo = nullptr;
 ID2D1SolidColorBrush* pTextBrush = nullptr;
 ID2D1SolidColorBrush* pLinePenD2D = nullptr;
 ID2D1SolidColorBrush* pBtnBrush = nullptr;
+ID2D1SolidColorBrush* pAboutTextBrush = nullptr;
+ID2D1SolidColorBrush* pAboutLineBrush = nullptr;
 
 ID2D1Bitmap* pBitmapLogo = nullptr;
 
-IDWriteTextFormat* pTextFormatTitle = nullptr; 
 IDWriteTextFormat* pTextFormatBody = nullptr;
+IDWriteTextFormat* pTextFormatAbout = nullptr;
+
+CustomButton btn = {};
 
 wchar_t NT[64];
 wchar_t build[64];
 wchar_t OSName[128];
 wchar_t commercialVersion[64];
 wchar_t user[128];
+
 int compCheck;
 bool isDarkModeEnabled;
 
 int argc = 0;
 LPWSTR* argv = nullptr;
 
-CustomButton btn = {};
+HWND hwndAbout = nullptr;
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow);
-void AboutWindow(HWND hParent, HINSTANCE hInst);
 LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+void AboutWindow(HWND hParent, HINSTANCE hInst);
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
@@ -57,9 +63,10 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_PAINT: {
             PAINTSTRUCT ps;
-            BeginPaint(hwnd, &ps);
+            HDC hdc = BeginPaint(hwnd, &ps);
 
-            if (SUCCEEDED(CreateDeviceResources(hwnd))) {
+            HRESULT hr = CreateDeviceResources(hwnd);
+            if (SUCCEEDED(hr)) {
                 RECT rc;
                 GetClientRect(hwnd, &rc);
 
@@ -92,8 +99,12 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pRenderTarget->DrawLine(D2D1::Point2F(margin, lineY), D2D1::Point2F((float)rc.right - margin, lineY), pLinePenD2D, 1.0f);
 
                 //Text
+                LPCWSTR text = string_6();
+                size_t textLen = 0;
                 D2D1_RECT_F layoutRect = D2D1::RectF(margin, ScaleValueF(90.0f, dpi), (float)rc.right - margin, (float)rc.bottom - ScaleValueF(70.0f, dpi));
-                pRenderTarget->DrawText(string_6(), (UINT32)wcslen(string_6()), pTextFormatBody, layoutRect, pTextBrush);
+                if (SUCCEEDED(StringCchLengthW(text, 2048, &textLen))) {
+                    pRenderTarget->DrawText(text, (UINT32)textLen, pTextFormatBody, layoutRect, pTextBrush);
+                }
 
                 //OK Button
                 D2D1_RECT_F bRect = D2D1::RectF((float)btn.rect.left, (float)btn.rect.top, (float)btn.rect.right, (float)btn.rect.bottom);
@@ -109,8 +120,10 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pTextFormatBody->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 pRenderTarget->DrawText(L"OK", 2, pTextFormatBody, bRect, pTextBrush);
 
-                if (pRenderTarget->EndDraw() == D2DERR_RECREATE_TARGET) {
+                hr = pRenderTarget->EndDraw();
+                if (hr == D2DERR_RECREATE_TARGET) {
                     DiscardDeviceResources();
+                    InvalidateRect(hwnd, NULL, FALSE);
                 }
             }
             EndPaint(hwnd, &ps);
@@ -158,6 +171,10 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
 
         case WM_KEYDOWN: {
+            if (wp == 'I') {
+                AboutWindow(hwnd, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE));
+            }
+
             if (wp == VK_RETURN || wp == VK_ESCAPE) {
                 SendMessage(hwnd, WM_CLOSE, 0, 0);
             }
@@ -171,7 +188,6 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_SETTINGCHANGE: {
             DarkModeCheck(); 
             windowTheme(hwnd);
-
             InvalidateRect(hwnd, NULL, TRUE);
             UpdateWindow(hwnd);
             return 0;
@@ -181,13 +197,10 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             LPRECT lprcNewScale = (LPRECT)lp;
 
             DiscardDeviceResources();
-            
             SafeRelease(&pTextFormatBody); 
             SafeRelease(&pBitmapLogo); 
-
             DarkModeCheck(); 
             windowTheme(hwnd);
-
             SetWindowPos(hwnd, NULL, lprcNewScale->left, lprcNewScale->top, lprcNewScale->right - lprcNewScale->left, lprcNewScale->bottom - lprcNewScale->top, SWP_NOZORDER | SWP_NOACTIVATE);
 
             InvalidateRect(hwnd, NULL, TRUE);
@@ -295,4 +308,138 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
 
     LocalFree(argv);
     return msg.wParam;
+}
+
+LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    switch (msg) {
+        case WM_CREATE: {
+            HMENU hSysMenu = GetSystemMenu(hwnd, FALSE);
+            if (hSysMenu) {
+                RemoveMenu(hSysMenu, SC_SIZE, MF_BYCOMMAND);
+                RemoveMenu(hSysMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+            }
+            windowTheme(hwnd);
+            return 0;
+        }
+
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            BeginPaint(hwnd, &ps);
+
+            if (SUCCEEDED(CreateDeviceResourcesAboutWindow(hwnd))) { 
+                pAboutRenderTarget->BeginDraw();
+                clearBackground(pAboutRenderTarget); 
+
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+                UINT dpi = GetDpiForWindow(hwnd);
+                
+                float margin = ScaleValueF(65.0f, dpi);
+                float textY = (float)rc.bottom / 2.0f;
+                float lineTopY = textY - ScaleValueF(30.0f, dpi);
+                float lineBottomY = textY + ScaleValueF(30.0f, dpi);
+
+                pTextFormatAbout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                pTextFormatAbout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+
+                pAboutRenderTarget->DrawLine(D2D1::Point2F(margin, lineTopY), D2D1::Point2F((float)rc.right - margin, lineTopY), pAboutLineBrush, 1.0f);
+
+                D2D1_RECT_F textRect = D2D1::RectF(0, lineTopY, (float)rc.right, lineBottomY);
+                LPCWSTR aboutText = string_8();
+                size_t aboutLen = 0;
+                if (SUCCEEDED(StringCchLengthW(aboutText, 512, &aboutLen))) {
+                    pAboutRenderTarget->DrawText(aboutText, (UINT32)aboutLen, pTextFormatAbout, textRect, pAboutTextBrush);
+                }
+
+                pAboutRenderTarget->DrawLine(D2D1::Point2F(margin, lineBottomY), D2D1::Point2F((float)rc.right - margin, lineBottomY), pAboutLineBrush, 1.0f);
+
+                if (pAboutRenderTarget->EndDraw() == D2DERR_RECREATE_TARGET) {
+                    SafeRelease(&pAboutRenderTarget);
+                    SafeRelease(&pAboutTextBrush);
+                    SafeRelease(&pAboutLineBrush);
+                }
+            }
+            EndPaint(hwnd, &ps);
+            return 0;
+        }
+
+        case WM_ERASEBKGND:
+            return 1;
+
+        case WM_SETTINGCHANGE: {
+            DarkModeCheck(); 
+            windowTheme(hwnd);
+            InvalidateRect(hwnd, NULL, TRUE);
+            UpdateWindow(hwnd);
+            return 0;
+        }
+        
+        case WM_DPICHANGED: {
+            LPRECT lprcNewScale = (LPRECT)lp;
+            DiscardDeviceResourcesAboutWindow();
+            SafeRelease(&pTextFormatAbout); 
+            DarkModeCheck(); 
+            windowTheme(hwnd);
+            SetWindowPos(hwnd, NULL, lprcNewScale->left, lprcNewScale->top, lprcNewScale->right - lprcNewScale->left, lprcNewScale->bottom - lprcNewScale->top, SWP_NOZORDER | SWP_NOACTIVATE);
+            InvalidateRect(hwnd, NULL, TRUE);
+            return 0;
+        }
+
+        case WM_LBUTTONDOWN: {
+            ShellExecuteW(NULL, L"open", L"https://github.com/NMattyy/BetterWinver", NULL, NULL, SW_SHOWNORMAL);
+
+            return 0;
+        }
+
+        case WM_DESTROY: {
+            DiscardDeviceResourcesAboutWindow();
+            hwndAbout = nullptr;
+            return 0;
+        }
+
+        case WM_CLOSE: {
+            DestroyWindow(hwnd);
+            return 0;
+        }
+    }
+    return DefWindowProc(hwnd, msg, wp, lp);
+}
+
+void AboutWindow(HWND hParent, HINSTANCE hInst) {
+    if (hwndAbout != nullptr && IsWindow(hwndAbout)) {
+        ShowWindow(hwndAbout, SW_SHOWNORMAL);
+        SetForegroundWindow(hwndAbout);
+        return;
+    }
+
+    static bool registered = false;
+    if (!registered) {
+        WNDCLASSW wcAbout = {0};
+        wcAbout.lpfnWndProc = aboutWindowManager;
+        wcAbout.hInstance = hInst;
+        wcAbout.hCursor = LoadCursor(NULL, IDC_ARROW);
+        wcAbout.lpszClassName = L"AboutBetterWinver";
+        RegisterClassW(&wcAbout);
+        registered = true;
+    }
+
+    UINT dpi = GetDpiForWindow(hParent);
+    RECT rc = { 0, 0, ScaleValue(220, dpi), ScaleValue(100, dpi) };
+    
+    AdjustWindowRectEx(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, WS_EX_DLGMODALFRAME);
+
+    int windowWidth = rc.right - rc.left;
+    int windowHeight = rc.bottom - rc.top;
+
+    RECT parentRc;
+    GetWindowRect(hParent, &parentRc);
+    int x = parentRc.left + ((parentRc.right - parentRc.left) - windowWidth) / 2;
+    int y = parentRc.top + ((parentRc.bottom - parentRc.top) - windowHeight) / 2;
+
+    hwndAbout = CreateWindowExW(WS_EX_DLGMODALFRAME, L"AboutBetterWinver", string_7(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, x, y, windowWidth, windowHeight, hParent, NULL, hInst, NULL);
+
+    if (hwndAbout) {
+        ShowWindow(hwndAbout, SW_SHOW);
+    }
 }
