@@ -1,11 +1,11 @@
-//BetterWinver 1.7.1
+//BetterWinver 1.7.2
 #ifndef FEATURES_H
 #define FEATURES_H
 
 #include <windows.h>
 #include <d2d1_1.h>
 #include <dwrite.h>
-#include <algorithm>
+#include <strsafe.h>
 
 #include "infoGet.hpp"
 
@@ -13,16 +13,22 @@ extern int compCheck;
 extern bool isDarkModeEnabled;
 
 extern ID2D1Factory* pD2DFactory;
+extern IDWriteFactory* pDWriteFactory;
+extern IWICImagingFactory* pWICFactory;
+
 extern ID2D1HwndRenderTarget* pRenderTarget;
+extern ID2D1HwndRenderTarget* pAboutRenderTarget;
 
 extern ID2D1SolidColorBrush* pTextBrush;
 extern ID2D1SolidColorBrush* pLinePenD2D;
 extern ID2D1SolidColorBrush* pBtnBrush;
+extern ID2D1SolidColorBrush* pAboutTextBrush;
+extern ID2D1SolidColorBrush* pAboutLineBrush;
 
-extern IDWriteFactory* pDWriteFactory;
-extern IDWriteTextFormat* pTextFormatBody;
 extern ID2D1Bitmap* pBitmapLogo;
-extern IWICImagingFactory* pWICFactory;
+
+extern IDWriteTextFormat* pTextFormatBody;
+extern IDWriteTextFormat* pTextFormatAbout;
 
 struct CustomButton {
     RECT rect;
@@ -32,16 +38,25 @@ struct CustomButton {
 extern CustomButton btn;
 
 inline HRESULT CreateDeviceResources(HWND hwnd);
+inline HRESULT CreateDeviceResourcesAboutWindow(HWND hwnd);
 inline void DiscardDeviceResources();
 inline void windowTheme(HWND hwnd);
-inline void logoCreation(HWND hwnd, int resourceNumber);
+inline void logoCreation(HWND hwnd);
 inline HRESULT CreateTextFormats(HWND hwnd);
 inline HRESULT LoadResourceBitmap(HWND hwnd);
 inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown);
 
+template <class T> void SafeRelease(T **ppT) {
+    if (*ppT) {
+        (*ppT)->Release();
+        *ppT = NULL;
+    }
+}
+
 inline HRESULT CreateDeviceResources(HWND hwnd) {
     HRESULT hr = S_OK;
     UINT dpi = GetDpiForWindow(hwnd);
+
     if (!pRenderTarget) {
         RECT rc;
         GetClientRect(hwnd, &rc);
@@ -58,10 +73,10 @@ inline HRESULT CreateDeviceResources(HWND hwnd) {
 
         hr = pD2DFactory->CreateHwndRenderTarget(props, hwndProps, &pRenderTarget);
         
-        if (SUCCEEDED(hr)) {
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pTextBrush);
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pLinePenD2D);
-            pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0,0), &pBtnBrush);
+        if (SUCCEEDED(hr) && !pTextBrush) {
+            (pRenderTarget)->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pTextBrush);
+            (pRenderTarget)->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pLinePenD2D);
+            (pRenderTarget)->CreateSolidColorBrush(D2D1::ColorF(0,0,0,0), &pBtnBrush);
         }
     }
 
@@ -72,9 +87,7 @@ inline HRESULT CreateDeviceResources(HWND hwnd) {
         pTextBrush->SetColor(textColor);
         pLinePenD2D->SetColor(lineColor);
 
-        int resourceNumber = (compCheck >= 10240) ? 2123 : 2121;
-        logoCreation(hwnd, resourceNumber);
-        
+        logoCreation(hwnd);
         hr = CreateTextFormats(hwnd);
         LoadResourceBitmap(hwnd);
     }
@@ -93,11 +106,58 @@ inline HRESULT CreateDeviceResources(HWND hwnd) {
     return hr;
 }
 
+inline HRESULT CreateDeviceResourcesAboutWindow(HWND hwnd) {
+    HRESULT hr = S_OK;
+
+    if (!pAboutRenderTarget) {
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+
+        D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_HARDWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96.0f, 96.0f);
+
+        D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProps = D2D1::HwndRenderTargetProperties(hwnd, size);
+        
+        hr = pD2DFactory->CreateHwndRenderTarget(props, hwndProps, &pAboutRenderTarget);
+
+        if (SUCCEEDED(hr)) {
+            pAboutRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pAboutTextBrush);
+            pAboutRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0,0,0), &pAboutLineBrush);
+        }
+    }
+
+    if (SUCCEEDED(hr)) {
+        D2D1_COLOR_F textColor = isDarkModeEnabled ? D2D1::ColorF(D2D1::ColorF::White) : D2D1::ColorF(D2D1::ColorF::Black);
+        D2D1_COLOR_F lineColor = isDarkModeEnabled ? D2D1::ColorF(0.4f, 0.4f, 0.4f) : D2D1::ColorF(0.8f, 0.8f, 0.8f);
+        
+        pAboutTextBrush->SetColor(textColor);
+        pAboutLineBrush->SetColor(lineColor);
+
+        if (!pTextFormatAbout) {
+            UINT dpi = GetDpiForWindow(hwnd);
+            pDWriteFactory->CreateTextFormat(
+                L"Segoe UI Variable Text", NULL, DWRITE_FONT_WEIGHT_NORMAL,
+                DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+                ScaleValueF(12.0f, dpi), L"", &pTextFormatAbout
+            );
+        }
+    }
+    return hr;
+}
+
 inline void DiscardDeviceResources() {
     SafeRelease(&pRenderTarget);
     SafeRelease(&pTextBrush);
     SafeRelease(&pLinePenD2D);
     SafeRelease(&pBtnBrush);
+    SafeRelease(&pBitmapLogo); 
+    SafeRelease(&pTextFormatBody);
+}
+
+inline void DiscardDeviceResourcesAboutWindow() {
+    SafeRelease(&pAboutRenderTarget);
+    SafeRelease(&pAboutTextBrush);
+    SafeRelease(&pAboutLineBrush);
 }
 
 inline void windowTheme(HWND hwnd) {
@@ -132,12 +192,13 @@ inline void windowTheme(HWND hwnd) {
     SafeRelease(&pBitmapLogo);
 }
 
-inline void logoCreation(HWND hwnd, int resourceNumber) {
-    if (pBitmapLogo) return;
+inline void logoCreation(HWND hwnd) {
+    if (pBitmapLogo || !pRenderTarget) return;
+    int resourceNumber = (compCheck >= 10240) ? 2123 : 2121;
 
     wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
-    GetSystemDirectoryW(systemPath, MAX_PATH);
-    wsprintfW(dllPath, L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
+    if (GetSystemDirectoryW(systemPath, MAX_PATH) == 0) return;
+    StringCchPrintfW(dllPath, ARRAYSIZE(dllPath), L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
 
     HMODULE hLib = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
     if (!hLib) return;
@@ -190,10 +251,7 @@ inline void logoCreation(HWND hwnd, int resourceNumber) {
         float dpiX, dpiY;
         pRenderTarget->GetDpi(&dpiX, &dpiY);
 
-        D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
-            pRenderTarget->GetPixelFormat(),
-            dpiX, dpiY
-        );
+        D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(pRenderTarget->GetPixelFormat(), dpiX, dpiY);
 
         pRenderTarget->CreateBitmapFromWicBitmap(pFinalSource, &props, &pBitmapLogo);
         SafeRelease(&pFinalSource);
