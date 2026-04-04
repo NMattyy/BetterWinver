@@ -9,11 +9,11 @@
 
 ## Aggiunte future
 Release 1.8.0
-- Sfondo Acrylic Windows 10
-
-Release 1.9.0
 - Aggiunta del supporto all'architettura ARM64 per Windows 10 e 11
 - Riscrittura di alcune parti del codice per migliorare l'ordine
+
+Release 1.9.0
+- Aggiunta sfondo semi-acrylic su Windows 10
 
 ## Sostituzione a Winver
 > [!Warning]
