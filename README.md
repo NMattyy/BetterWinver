@@ -1,7 +1,7 @@
 # BetterWinver
 > [!Warning]
-> Questo programma è stato fatto esclusivamente a scopo didattico utilizzando in parte l'assistente
-> Gemini per imparare c++ e l'utilizzo delle librerie c++ di Windows.
+> Questo programma è stato fatto esclusivamente a scopo didattico utilizzando in gran parte l'assistente
+> Gemini per imparare c++ e l'utilizzo delle librerie di Windows.
 
 | BetterWinver | Preview |
 | :--- | :---: |
@@ -9,7 +9,8 @@
 
 ## Aggiunte future
 Release 1.8.0
-- Aggiunta del supporto all'architettura ARM64 per Windows 10 e 11
+- Aggiunta del supporto all'architettura ARM64 per Windows 10 e 11 sacrificando il supporto (già problematico) a Windows 8
+- Nuovo sistema di traduzione
 - Riscrittura di alcune parti del codice per migliorare l'ordine
 
 Release 1.9.0
