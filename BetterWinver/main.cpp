@@ -1,13 +1,16 @@
-//BetterWinver 1.7.2
+//BetterWinver 1.8.0
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00
+#endif
+
 #include <windows.h>
 #include <dwmapi.h>
 #include <d2d1_1.h>
 #include <dwrite.h>
 #include <wincodec.h>
 
-#include "infoGet.hpp"
-#include "features.hpp"
-#include "translation.hpp"
+#include "placeholders.h"
+#include "headers.h"
 
 ID2D1Factory* pD2DFactory = nullptr;
 IDWriteFactory* pDWriteFactory = nullptr;
@@ -43,11 +46,6 @@ int argc = 0;
 LPWSTR* argv = nullptr;
 
 HWND hwndAbout = nullptr;
-
-LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow);
-LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
-void AboutWindow(HWND hParent, HINSTANCE hInst);
 
 LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
@@ -99,11 +97,14 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pRenderTarget->DrawLine(D2D1::Point2F(margin, lineY), D2D1::Point2F((float)rc.right - margin, lineY), pLinePenD2D, 1.0f);
 
                 //Text
-                LPCWSTR text = string_6();
+                wchar_t formattedText[2048];
+                LPCWSTR text = GetResString(TEXT_BODY);
+                StringCchPrintfW(formattedText, ARRAYSIZE(formattedText), text, OSName, commercialVersion, NT, build, (wchar_t)169, OSName, user);
+
                 size_t textLen = 0;
                 D2D1_RECT_F layoutRect = D2D1::RectF(margin, ScaleValueF(90.0f, dpi), (float)rc.right - margin, (float)rc.bottom - ScaleValueF(70.0f, dpi));
-                if (SUCCEEDED(StringCchLengthW(text, 2048, &textLen))) {
-                    pRenderTarget->DrawText(text, (UINT32)textLen, pTextFormatBody, layoutRect, pTextBrush);
+                if (SUCCEEDED(StringCchLengthW(formattedText, 2048, &textLen))) {
+                    pRenderTarget->DrawText(formattedText, (UINT32)textLen, pTextFormatBody, layoutRect, pTextBrush);
                 }
 
                 //OK Button
@@ -172,7 +173,7 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_KEYDOWN: {
             if (wp == 'I') {
-                AboutWindow(hwnd, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE));
+                WinAbout(hwnd, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE));
             }
 
             if (wp == VK_RETURN || wp == VK_ESCAPE) {
@@ -230,11 +231,6 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     buildGet(build, 64);
     compCheck = _wtoi(build);
 
-    if (compCheck < 9200) {
-        MessageBoxW(NULL, string_1(), string_2(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
-        return 0;
-    }
-
     OSGet(OSName, 128);
     ntGet(NT, 64);
     commercialVersionGet(commercialVersion, 64);
@@ -263,7 +259,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     }
 
     if (FAILED(hr)) {
-        MessageBoxW(NULL, string_3(), string_4(), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
+        MessageBoxW(NULL, GetResString(FATAL_ERROR), GetResString(FATAL_ERROR_TITLE), MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
         return 0;
     }
 
@@ -274,7 +270,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     wc.lpszClassName = L"BetterWinver";
     RegisterClassW(&wc);
 
-    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, L"BetterWinver", string_5(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, hInst, NULL);
+    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, L"BetterWinver", GetResString(APP_TITLE), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, hInst, NULL);
 
     if (hwnd) {
         windowTheme(hwnd);
@@ -310,7 +306,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
     return msg.wParam;
 }
 
-LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+LRESULT CALLBACK WindowManagerAbout(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
         case WM_CREATE: {
             HMENU hSysMenu = GetSystemMenu(hwnd, FALSE);
@@ -342,14 +338,17 @@ LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 pTextFormatAbout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
                 pTextFormatAbout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-
                 pAboutRenderTarget->DrawLine(D2D1::Point2F(margin, lineTopY), D2D1::Point2F((float)rc.right - margin, lineTopY), pAboutLineBrush, 1.0f);
 
                 D2D1_RECT_F textRect = D2D1::RectF(0, lineTopY, (float)rc.right, lineBottomY);
-                LPCWSTR aboutText = string_8();
+                wchar_t formattedAboutText[2048];
+                LPCWSTR aboutText = GetResString(ABOUT_TEXT_BODY);
+
+                StringCchPrintfW(formattedAboutText, ARRAYSIZE(formattedAboutText), aboutText, VERSION_STRING);
+
                 size_t aboutLen = 0;
-                if (SUCCEEDED(StringCchLengthW(aboutText, 512, &aboutLen))) {
-                    pAboutRenderTarget->DrawText(aboutText, (UINT32)aboutLen, pTextFormatAbout, textRect, pAboutTextBrush);
+                if (SUCCEEDED(StringCchLengthW(formattedAboutText, ARRAYSIZE(formattedAboutText), &aboutLen))) {
+                    pAboutRenderTarget->DrawText(formattedAboutText, (UINT32)aboutLen, pTextFormatAbout, textRect, pAboutTextBrush);
                 }
 
                 pAboutRenderTarget->DrawLine(D2D1::Point2F(margin, lineBottomY), D2D1::Point2F((float)rc.right - margin, lineBottomY), pAboutLineBrush, 1.0f);
@@ -364,8 +363,9 @@ LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
         }
 
-        case WM_ERASEBKGND:
+        case WM_ERASEBKGND: {
             return 1;
+        }
 
         case WM_SETTINGCHANGE: {
             DarkModeCheck(); 
@@ -406,7 +406,7 @@ LRESULT CALLBACK aboutWindowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return DefWindowProc(hwnd, msg, wp, lp);
 }
 
-void AboutWindow(HWND hParent, HINSTANCE hInst) {
+void WinAbout(HWND hParent, HINSTANCE hInst) {
     if (hwndAbout != nullptr && IsWindow(hwndAbout)) {
         ShowWindow(hwndAbout, SW_SHOWNORMAL);
         SetForegroundWindow(hwndAbout);
@@ -416,7 +416,7 @@ void AboutWindow(HWND hParent, HINSTANCE hInst) {
     static bool registered = false;
     if (!registered) {
         WNDCLASSW wcAbout = {0};
-        wcAbout.lpfnWndProc = aboutWindowManager;
+        wcAbout.lpfnWndProc = WindowManagerAbout;
         wcAbout.hInstance = hInst;
         wcAbout.hCursor = LoadCursor(NULL, IDC_ARROW);
         wcAbout.lpszClassName = L"AboutBetterWinver";
@@ -437,7 +437,7 @@ void AboutWindow(HWND hParent, HINSTANCE hInst) {
     int x = parentRc.left + ((parentRc.right - parentRc.left) - windowWidth) / 2;
     int y = parentRc.top + ((parentRc.bottom - parentRc.top) - windowHeight) / 2;
 
-    hwndAbout = CreateWindowExW(WS_EX_DLGMODALFRAME, L"AboutBetterWinver", string_7(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, x, y, windowWidth, windowHeight, hParent, NULL, hInst, NULL);
+    hwndAbout = CreateWindowExW(WS_EX_DLGMODALFRAME, L"AboutBetterWinver", GetResString(ABOUT_TITLE), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, x, y, windowWidth, windowHeight, hParent, NULL, hInst, NULL);
 
     if (hwndAbout) {
         ShowWindow(hwndAbout, SW_SHOW);

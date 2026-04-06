@@ -1,0 +1,60 @@
+﻿#include <windows.h>
+#include "placeholders.h"
+
+1 24 "manifest.xml"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_BUILD
+PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_BUILD
+FILEFLAGSMASK  0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004B0"
+        BEGIN
+            VALUE "CompanyName", "Mattyy"
+            VALUE "FileDescription", "BetterWinver"
+            VALUE "FileVersion", VERSION_STRING
+            VALUE "InternalName", "betterwinver"
+            VALUE "OriginalFilename", "BetterWinver.exe"
+            VALUE "ProductName", "BetterWinver"
+            VALUE "ProductVersion", VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
+//English US
+LANGUAGE 0x09, 0x01
+STRINGTABLE
+BEGIN
+    FATAL_ERROR "An error has occured during the starting of a critical component"
+    FATAL_ERROR_TITLE "Fatal Error"
+    APP_TITLE "About Windows"
+    TEXT_BODY "Microsoft %s %s\nNT Version %s (OS build %s)\n%c Microsoft Corporation. All rights reserved.\n\nThe %s operating system and its user interface are protected by trademark and other pending or existing intellectual property rights in the United States and other countries/regions\n\n\n\nProduct licensed to:\n%s"
+    ABOUT_TITLE "About BetterWinver"
+    ABOUT_TEXT_BODY "BetterWinver\nVersion %s\nCreated by NMattyy"
+END
+
+//Italian
+LANGUAGE 0x10, 0x01
+STRINGTABLE
+BEGIN
+    FATAL_ERROR "Si è verificato un errore fatale durante l'avvio di un componente critico del programma"
+    FATAL_ERROR_TITLE "Errore Fatale"
+    APP_TITLE "Informazioni su Windows"
+    TEXT_BODY "Microsoft %s %s\nVersione NT %s (build SO %s)\n%c Microsoft Corporation. Tutti i diritti riservati.\n\nIl sistema operativo %s e la relativa interfaccia utente sono protetti da marchi e da altri diritti di proprietà intellettuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche\n\n\n\nProdotto concesso in licenza a:\n%s"
+    ABOUT_TITLE "Informazioni su BetterWinver"
+    ABOUT_TEXT_BODY "BetterWinver\nVersione %s\nCreato da NMattyy"
+END
