@@ -1,34 +1,4 @@
-//BetterWinver 1.7.2
-#ifndef INFOGET_H
-#define INFOGET_H
-
-#include <windows.h>
-#include <winreg.h>
-#include <lmcons.h>
-#include <strsafe.h>
-
-extern wchar_t NT[64];
-extern wchar_t build[64];
-extern wchar_t OSName[128];
-extern wchar_t commercialVersion[64];
-extern wchar_t user[128];
-
-extern int compCheck;
-
-extern bool isDarkModeEnabled;
-
-extern int argc;
-extern LPWSTR* argv;
-
-//Informations
-inline void GetRegString(HKEY hRoot, LPCWSTR subKey, LPCWSTR valueName, wchar_t* outBuffer, DWORD bufferSize) {
-    HKEY hKey;
-    outBuffer[0] = L'\0';
-    if (RegOpenKeyExW(hRoot, subKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, valueName, NULL, NULL, (LPBYTE)outBuffer, &bufferSize);
-        RegCloseKey(hKey);
-    }
-}
+//BetterWinver 1.8.0
 
 inline void ntGet(wchar_t* out, DWORD size) {
     HKEY hKey;
@@ -102,7 +72,7 @@ inline void commercialVersionGet(wchar_t* out, DWORD size) {
     }
 }
 
-inline int userGet(wchar_t* out, DWORD size) {
+inline void userGet(wchar_t* out, DWORD size) {
     wchar_t userName[UNLEN + 1] = {0};
     DWORD userName_len = UNLEN + 1;
 
@@ -112,7 +82,7 @@ inline int userGet(wchar_t* out, DWORD size) {
                 if (i + 1 < argc) {
                     StringCchCopyW(out, size, argv[i+1]);
                 }
-                return 0;
+                return;
             }
         }
     }
@@ -122,84 +92,4 @@ inline int userGet(wchar_t* out, DWORD size) {
     } else {
         StringCchCopyW(out, size, L"Unknown");
     }
-    return 0;
 }
-
-//Settings
-inline UINT GetSystemDPI() {
-    UINT dpi = 96;
-    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
-    
-    typedef UINT (WINAPI* GetDpiForSystemProc)();
-    GetDpiForSystemProc pGetDpiForSystem = (GetDpiForSystemProc)GetProcAddress(hUser32, "GetDpiForSystem");
-    
-    if (pGetDpiForSystem) {
-        dpi = pGetDpiForSystem();
-    } else {
-        HDC hdc = GetDC(NULL);
-        if (hdc) {
-            dpi = GetDeviceCaps(hdc, LOGPIXELSX);
-            ReleaseDC(NULL, hdc);
-        }
-    }
-    return dpi;
-}
-
-inline UINT GetDpiForWindow(HWND hwnd) {
-    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
-    if (hUser32) {
-        typedef UINT (WINAPI* GetDpiForWindowProc)(HWND);
-        GetDpiForWindowProc pGetDpiForWindow = (GetDpiForWindowProc)GetProcAddress(hUser32, "GetDpiForWindow");
-        
-        if (pGetDpiForWindow) {
-            return pGetDpiForWindow(hwnd);
-        }
-    }
-    return GetSystemDPI(); 
-}
-
-inline int DarkModeCheck() {
-    if (argv) {
-        for (int i = 1; i < argc; i++) {
-            if (CompareStringOrdinal(argv[i], -1, L"-forcedarkmode", -1, TRUE) == CSTR_EQUAL) {
-                isDarkModeEnabled = true;
-                return 0;
-            } else if (CompareStringOrdinal(argv[i], -1, L"-forcelightmode", -1, TRUE) == CSTR_EQUAL) {
-                isDarkModeEnabled = false;
-                return 0;
-            }
-        }
-    }
-
-    HKEY hKey;
-    DWORD value = 1; // 1 Light, 0 Dark;
-    DWORD valueSize = sizeof(value);
-
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, L"AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &valueSize);
-        RegCloseKey(hKey);
-    }
-    isDarkModeEnabled = (value == 0);
-    return 0;
-}
-
-inline void currentLanguage(wchar_t* out, DWORD size) {
-    StringCchCopyW(out, size, L"0409"); // Default English-US
-    HKEY hKey;
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\Nls\\Language", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        DWORD bSizeInBytes = size * sizeof(wchar_t);
-        RegQueryValueExW(hKey, L"InstallLanguage", NULL, NULL, (LPBYTE)out, &bSizeInBytes);
-        RegCloseKey(hKey);
-    }
-}
-
-//Utility
-inline int ScaleValue(int value, UINT dpi) {
-    return MulDiv(value, dpi, 96);
-}
-
-inline float ScaleValueF(float value, UINT dpi) {
-    return (value * (float)dpi) / 96.0f;
-}
-
-#endif
