@@ -1,4 +1,4 @@
-//BetterWinver 1.8.0
+//BetterWinver 1.8.1
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0A00
 #endif
@@ -64,33 +64,28 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             HDC hdc = BeginPaint(hwnd, &ps);
 
             HRESULT hr = CreateDeviceResources(hwnd);
-            if (SUCCEEDED(hr)) {
+            if (SUCCEEDED(hr) && pRenderTarget) {
                 RECT rc;
                 GetClientRect(hwnd, &rc);
 
                 pRenderTarget->BeginDraw();
+
                 pTextFormatBody->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                 pTextFormatBody->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-
-                pRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
 
                 clearBackground(pRenderTarget);
 
                 UINT dpi = GetDpiForWindow(hwnd);
                 float margin = ScaleValueF(30.0f, dpi);
 
-                pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
-
                 //Logo
                 if (pBitmapLogo) {
                     D2D1_SIZE_F size = pBitmapLogo->GetSize();
                     int destW = (int)((float)rc.right - (margin * 2));
                     int destH = (int)(( (float)destW / size.width ) * size.height);
-                    D2D1_RECT_F logoRect = D2D1::RectF((float)margin, (float)ScaleValue(5, dpi), (float)(margin + destW), (float)(ScaleValue(5, dpi) + destH));
+                    D2D1_RECT_F logoRect = D2D1::RectF((float)(int)margin, (float)(int)ScaleValue(5, dpi), (float)(int)(margin + destW), (float)(int)(ScaleValue(5, dpi) + destH));
                     pRenderTarget->DrawBitmap(pBitmapLogo, logoRect, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, NULL);
                 }
-
-                pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
                 //Line
                 float lineY = ScaleValueF(75.0f, dpi);
@@ -126,6 +121,19 @@ LRESULT CALLBACK windowManager(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     DiscardDeviceResources();
                     InvalidateRect(hwnd, NULL, FALSE);
                 }
+            } else {
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+                
+                HBRUSH hBrush = CreateSolidBrush(isDarkModeEnabled ? RGB(32, 32, 32) : RGB(240, 240, 240));
+                FillRect(hdc, &rc, hBrush);
+                DeleteObject(hBrush);
+
+                LPCWSTR textErrorTitle = GetResString(FATAL_ERROR_TITLE);
+
+                SetBkMode(hdc, TRANSPARENT);
+                SetTextColor(hdc, isDarkModeEnabled ? RGB(255, 255, 255) : RGB(0, 0, 0));
+                DrawTextW(hdc, textErrorTitle, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
             }
             EndPaint(hwnd, &ps);
             return 0;

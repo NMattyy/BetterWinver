@@ -1,9 +1,9 @@
-//BetterWinver 1.8.0
+//BetterWinver 1.8.1
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 8
-#define VERSION_PATCH 0
+#define VERSION_PATCH 1
 #define VERSION_BUILD 0
-#define VERSION_STRING L"1.8.0"
+#define VERSION_STRING L"1.8.1"
 
 #define FATAL_ERROR 103
 #define FATAL_ERROR_TITLE 104

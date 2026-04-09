@@ -1,4 +1,4 @@
-//BetterWinver 1.8.0
+//BetterWinver 1.8.1
 
 inline void ntGet(wchar_t* out, DWORD size) {
     HKEY hKey;
@@ -36,27 +36,28 @@ inline void OSGet(wchar_t* out, DWORD size) {
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         wchar_t buffer[256];
-        SecureZeroMemory(buffer, sizeof(buffer));
         DWORD bSize = sizeof(buffer);
 
-        if (compCheck < 22000) {
-            if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
-                StringCchCopyW(out, size, buffer);
-            }
-        } else {
-            if (RegQueryValueExW(hKey, L"EditionID", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
-                if (CompareStringOrdinal(buffer, -1, L"Professional", -1, TRUE) == CSTR_EQUAL) {
-                    StringCchCopyW(out, size, L"Windows 11 Pro"); 
-                } else if (CompareStringOrdinal(buffer, -1, L"Core", -1, TRUE) == CSTR_EQUAL) {
-                    StringCchCopyW(out, size, L"Windows 11 Home"); 
+        if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
+            
+            if (compCheck >= 22000) {
+                wchar_t* pos = wcsstr(buffer, L"Windows 10");
+                if (pos != NULL) {
+                    wchar_t finalString[256];
+                    
+                    StringCchCopyW(finalString, 256, L"Windows 11");
+                    
+                    StringCchCatW(finalString, 256, pos + 10);
+                    
+                    StringCchCopyW(out, size, finalString);
                 } else {
-                    StringCchPrintfW(out, size, L"Windows 11 %s", buffer);
+                    StringCchCopyW(out, size, buffer);
                 }
+            } else {
+                StringCchCopyW(out, size, buffer);
             }
         }
         RegCloseKey(hKey);
-    } else {
-        StringCchCopyW(out, size, L"Windows");
     }
 }
 
@@ -76,13 +77,13 @@ inline void userGet(wchar_t* out, DWORD size) {
     wchar_t userName[UNLEN + 1] = {0};
     DWORD userName_len = UNLEN + 1;
 
-    if (argv) {
+    if (argv != nullptr && argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(argv[i], -1, L"-customusername", -1, TRUE) == CSTR_EQUAL) {
                 if (i + 1 < argc) {
-                    StringCchCopyW(out, size, argv[i+1]);
+                    StringCchCopyW(out, size, argv[i + 1]);
+                    return;
                 }
-                return;
             }
         }
     }

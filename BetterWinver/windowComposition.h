@@ -1,17 +1,15 @@
-//BetterWinver 1.8.0
+//BetterWinver 1.8.1
 
 inline void windowTheme(HWND hwnd) {
     BOOL dark = isDarkModeEnabled;
     DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
 
-    if (compCheck >= 10240) {
-        if (compCheck >= 22000) {
-            int backdropType = DWMSBT_MAINWINDOW; 
-            DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+    if (compCheck >= 22000) {
+        int backdropType = DWMSBT_MAINWINDOW; 
+        DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
 
-            MARGINS margins = {-1, -1, -1, -1};
-            DwmExtendFrameIntoClientArea(hwnd, &margins);
-        }
+        MARGINS margins = { -1, -1, -1, -1 };
+        DwmExtendFrameIntoClientArea(hwnd, &margins);
     }
 
     RECT rc;
@@ -27,19 +25,20 @@ inline void windowTheme(HWND hwnd) {
     btn.rect.bottom = (long)(rc.bottom - ScaleValue(20, dpi));
     btn.rect.top = (long)(btn.rect.bottom - btnH);
 
-    SafeRelease(&pTextFormatBody);
-    CreateTextFormats(hwnd); 
-    SafeRelease(&pBitmapLogo);
+    if (!pTextFormatBody) {
+        CreateTextFormats(hwnd);
+    }
 }
 
 inline void clearBackground(ID2D1HwndRenderTarget* pWindowRenderTarget) {
-    if (compCheck < 22000) {
-        pWindowRenderTarget->Clear(isDarkModeEnabled ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
-        pWindowRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
-    } else {
+    pWindowRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    if (compCheck >= 22000) {
         pWindowRenderTarget->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
         pWindowRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-    } 
+    } else {
+        pWindowRenderTarget->Clear(isDarkModeEnabled ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
+        pWindowRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+    }
 }
 
 inline void UpdateButtonState(HWND hwnd, LPARAM lp, bool isDown) {
