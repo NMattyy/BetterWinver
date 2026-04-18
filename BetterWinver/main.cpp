@@ -1,4 +1,4 @@
-//BetterWinver 1.8.1
+//BetterWinver 1.8.2
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0A00
 #endif
@@ -373,6 +373,14 @@ LRESULT CALLBACK WindowManagerAbout(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_ERASEBKGND: {
             return 1;
+        }
+
+        case WM_SETCURSOR: {
+            if (LOWORD(lp) == HTCLIENT) {
+                SetCursor(LoadCursor(NULL, IDC_HAND));
+                return TRUE;
+            }
+            break;
         }
 
         case WM_SETTINGCHANGE: {

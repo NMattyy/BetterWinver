@@ -1,4 +1,4 @@
-//BetterWinver 1.8.1
+//BetterWinver 1.8.2
 
 inline void ntGet(wchar_t* out, DWORD size) {
     HKEY hKey;
@@ -40,7 +40,7 @@ inline void OSGet(wchar_t* out, DWORD size) {
 
         if (RegQueryValueExW(hKey, L"ProductName", NULL, NULL, (LPBYTE)buffer, &bSize) == ERROR_SUCCESS) {
             
-            if (compCheck >= 22000) {
+            if (compCheck >= 21996) {
                 wchar_t* pos = wcsstr(buffer, L"Windows 10");
                 if (pos != NULL) {
                     wchar_t finalString[256];

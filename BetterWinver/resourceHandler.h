@@ -1,4 +1,4 @@
-//BetterWinver 1.8.0
+//BetterWinver 1.8.2
 
 inline HRESULT CreateDeviceResources(HWND hwnd) {
     HRESULT hr = S_OK;
@@ -115,7 +115,7 @@ inline void logoCreation(HWND hwnd) {
 
     IWICBitmapSource* pFinalSource = nullptr;
 
-    if (compCheck >= 22000) {
+    if (compCheck >= 21996) {
         HRSRC hRsrc = FindResourceW(hLib, MAKEINTRESOURCEW(2123), L"IMAGE");
         if (hRsrc) {
             HGLOBAL hResData = LoadResource(hLib, hRsrc);
