@@ -1,27 +1,24 @@
 # BetterWinver
 > [!Warning]
-> Questo programma è stato fatto esclusivamente a scopo didattico utilizzando in gran parte l'assistente
-> Gemini per imparare c++ e l'utilizzo delle librerie di Windows.
+> This application has been made only for educational purposes using mainly Gemini AI assistant to let me learn C++ better and Windows's API.
 
 | BetterWinver | Preview |
 | :--- | :---: |
-| BetterWinver è un programma scritto in c++ per Windows 10 (x64 e ARM64) e superiori (Pensato per Windows 11) che mira a ricreare l'applicazione "Informazioni di Windows (Winver)" di Microsoft Windows, migliorandone l'aspetto grafico, aggiungendo il tema scuro (Win 10+) o l'effetto Mica dello sfondo (Win 11), e il funzionamento utilizzando le API di windows (WIN32). | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Preview/Windows 11.png?raw=true" width="400"> |
+| BetterWinver is an application written in c++ for Windows 10 x64 & ARM64 and newer that aims to recreate "About Windows" (Winver) of Microsoft Windows by upgrading its graphics, like by adding dark theme supports (Win 10+) or Mica background effect (Win 11), and its functionality by using more modern API like d2d as render engine. | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Preview/Windows 11.png?raw=true" width="400"> |
 
-## Aggiunte future
-Release 1.9.0
-- Aggiunta sfondo semi-acrylic su Windows 10
+## Usage
+Since version 1.8.2, BetterWinver comes with an installer or a portable .exe file. Either way, to use the application, you have to install the certificate that comes with every release of the app (just the first time)
 
-## Sostituzione a Winver
-> [!Warning]
-> NON MI PRENDO NESSUNA RESPONSABILITA' RIGUARDO A POSSIBILI DANNI O PROBLEMI DOVUTI ALLA MODIFICA DI FILE DI SISTEMA
+**As this is a small project I couldn't buy a signed certificate, so I had to create It by myself. But this implies that It doesn't work in any computer except the ones where the certificate is installed, so if you want to install the app or if you have Smart App Control - SAC enabled to use the portable file, you have to install the certificate**
 
-1) Vai in "C:\Windows\System32" e cerca "winver.exe"
-2) Seleziona il file, clicca tasto testro e vai su "Proprietà"
-3) Vai nella sezione "Sicurezza" e, in basso, clicca "Avanzate"
-4) Dove leggi "Proprietario: TrustedInstaller", clicca su "Cambia"
-5) Inserisci il tuo nome utente, poi clicca su "Applica"
-6) Ora puoi sostituire winver con BetterWinver (Ricorda di rinominare BetterWinver.exe in "winver.exe")
+### Certificate instllation guide
+- Download either the portable executable or the installer bundle, then right click it and go to "Properties"
+- Then go to "Digital signature" and click the certificate, then click "details"
+- Now click "View certificate", if the certificate is released by "NMattyy" and expires on 04/18/2031 you can proceed installing It by pressing "Install certificate" 
+- Now another window will open, now in "Store Location" you have to select "Local machine", then select "Place all certificates in the following store"
+- Now browse the certificate store until you find "Trusted people", select It and proceed
+- Now you can click "Next" to install the certificate
+- After that you should be able to use the installer and use the portable version even if you have Smart App Control enabled
 
-
-## ℹ️ Crediti
-- [@Microsoft](https://github.com/microsoft) per Microsoft Windows
+## ℹ️ Credits
+- [@Microsoft](https://github.com/microsoft) for Microsoft Windows
