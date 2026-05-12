@@ -1,0 +1,37 @@
+﻿//Metadata 2.0.0
+#include <windows.h>
+#include "placeholders.hpp"
+
+1 24 "manifest.xml"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH
+PRODUCTVERSION VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH
+FILEFLAGSMASK  0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "000004B0"
+		BEGIN
+			VALUE "CompanyName", "Mattyy"
+			VALUE "FileDescription", "BetterWinver"
+			VALUE "FileVersion", VERSION_STRING
+			VALUE "InternalName", "betterwinver"
+			VALUE "OriginalFilename", "BetterWinver.exe"
+			VALUE "ProductName", "BetterWinver"
+			VALUE "ProductVersion", VERSION_STRING
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0, 1200
+	END
+END
