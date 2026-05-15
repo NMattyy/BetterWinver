@@ -1,24 +1,27 @@
-﻿//BetterWinver 2.0.0
+﻿//BetterWinver 2.1.0
 #include "Headers.hpp"
+
+const int MIN_REQUIRED_BUILD = 17763;
 
 LPWSTR* args = nullptr;
 wchar_t buildString[64];
 int argc = 0;
 int build;
-BOOL darkMode;
 
 UINT dpi;
-int witdht;
+int width;
 int height;
 
-Microsoft::WRL::ComPtr<ID2D1Factory3> pD2DFactory = nullptr;
+BOOL darkMode;
 
+Microsoft::WRL::ComPtr<ID2D1Factory3> pD2DFactory = nullptr;
 Microsoft::WRL::ComPtr<ID2D1DeviceContext> pMainContext = nullptr;
 Microsoft::WRL::ComPtr<ID2D1Bitmap1> pWindowsLogo = nullptr;
 Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> pMLineBrush = nullptr;
 Microsoft::WRL::ComPtr<IDWriteFactory> pDWriteFont = nullptr;
 Microsoft::WRL::ComPtr<IDWriteTextFormat> pMTextFormat = nullptr;
 Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> pMBrush = nullptr;
+wchar_t bodyText[2048];
 
 bool buttonHovered = false;
 bool buttonPressed = false;
@@ -46,7 +49,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
 
             DarkModeCheck();
-            WindowTheme(hwnd);
             return 0;
         }
 
@@ -83,7 +85,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (pMainContext) {
                 pMainContext->BeginDraw();
 
-                ClearBackground(pMainContext.Get());
+                pMainContext->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
                 pMainContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
                 DrawWindowsLogo();
@@ -155,6 +157,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             return 0;
         }
 
+        case WM_ENTERSIZEMOVE: {
+            if (build >= 17763 && build < 22000) {
+                ApplyAcrylic(hwnd, 1);
+            }
+            break;
+        }
+
+        case WM_EXITSIZEMOVE: {
+            if (build >= 17763 && build < 22000) {
+                ApplyAcrylic(hwnd, 4);
+            }
+            break;
+        }
+
         case WM_SETTINGCHANGE : {
             MainWindowDestroy();
             DarkModeCheck();
@@ -164,21 +180,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_DPICHANGED : {
-            dpi = HIWORD(wParam);
-            witdht = MulDiv(400, dpi, 96);
-            height = MulDiv(410, dpi, 96);
-
-            RECT rc = { 0, 0, witdht, height };
-            AdjustWindowRectExForDpi(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, WS_EX_DLGMODALFRAME, dpi);
-
-            SetWindowPos(hwnd, NULL,
-                ((RECT*)lParam)->left,   
-                ((RECT*)lParam)->top,
-                rc.right - rc.left,
-                rc.bottom - rc.top,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-
             MainWindowDestroy();
+            WindowScale(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
         }
@@ -205,6 +208,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     build = _wtoi(buildString);
     ManualLanguageGet();
 
+    if (build < MIN_REQUIRED_BUILD) {
+        MessageBoxW(NULL, GetResString(UNSUPPORTED_VERSION), L"BetterWinver", MB_OK | MB_ICONERROR);
+        return 0;
+    }
     const wchar_t CLASS_NAME[] = L"BetterWinver";
 
     WNDCLASS wc = { };
@@ -220,14 +227,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (!hwnd) return 0;
 
-    dpi = GetDpiForWindow(hwnd);
-
-    int width = MulDiv(400, dpi, 96);
-    int height = MulDiv(410, dpi, 96);
-
-    RECT rc = { 0, 0, width, height };
-    AdjustWindowRectExForDpi(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, WS_EX_DLGMODALFRAME, dpi);
-    SetWindowPos(hwnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    WindowScale(hwnd);
 
     if (SUCCEEDED(MainWindowComposition(hwnd))) {
         ValidateRect(hwnd, NULL);
@@ -235,6 +235,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
+    WindowTheme(hwnd);
+
+    SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
+    SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
+
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0) {

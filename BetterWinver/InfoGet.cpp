@@ -1,4 +1,4 @@
-//InfoGet 2.0.0
+//InfoGet 2.1.0
 #include "Headers.hpp"
 
 LPCWSTR GetResString(UINT id) {
@@ -9,15 +9,6 @@ LPCWSTR GetResString(UINT id) {
         return buffer;
     }
     return L"";
-}
-
-void GetRegString(HKEY hRoot, LPCWSTR subKey, LPCWSTR valueName, wchar_t* outBuffer, DWORD bufferSize) {
-    HKEY hKey;
-    outBuffer[0] = L'\0';
-    if (RegOpenKeyExW(hRoot, subKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, valueName, NULL, NULL, (LPBYTE)outBuffer, &bufferSize);
-        RegCloseKey(hKey);
-    }
 }
 
 void BuildGet(wchar_t* out, DWORD size) {
@@ -114,9 +105,7 @@ void VersionGet(wchar_t* out, DWORD size) {
 }
 
 void UserGet(wchar_t* out, DWORD size) {
-    wchar_t userName[UNLEN + 1] = { 0 };
-    DWORD userName_len = UNLEN + 1;
-
+    HKEY hKey;
     if (args != nullptr && argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(args[i], -1, L"-customusername", -1, TRUE) == CSTR_EQUAL) {
@@ -128,11 +117,10 @@ void UserGet(wchar_t* out, DWORD size) {
         }
     }
 
-    if (GetUserNameW(userName, &userName_len)) {
-        StringCchCopyW(out, size, userName);
-    }
-    else {
-        StringCchCopyW(out, size, L"Unknown");
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD bSize = size * sizeof(wchar_t);
+        RegQueryValueExW(hKey, L"LastUsedUsername", NULL, NULL, (LPBYTE)out, &bSize);
+        RegCloseKey(hKey);
     }
 }
 

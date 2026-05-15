@@ -1,8 +1,8 @@
-//Placeholders 2.0.0
+//Placeholders 2.1.0
 #define VERSION_MAJOR 2
-#define VERSION_MINOR 0
+#define VERSION_MINOR 1
 #define VERSION_PATCH 0
-#define VERSION_STRING L"2.0.0"
+#define VERSION_STRING L"2.1.0"
 
 //SystemMenu
 #define SC_ABOUT 0x0010
@@ -11,7 +11,8 @@
 
 //StringTable
 #define APP_TITLE 101
-#define TEXT_BODY 102
-#define BETTERWINVER_ABOUT 103
-#define BETTERWINVER_VERSION 104
-#define BETTERWINVER_CREATOR 105
+#define UNSUPPORTED_VERSION 102
+#define TEXT_BODY 103
+#define BETTERWINVER_ABOUT 104
+#define BETTERWINVER_VERSION 105
+#define BETTERWINVER_CREATOR 106

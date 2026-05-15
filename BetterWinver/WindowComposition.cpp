@@ -1,7 +1,42 @@
-//WindowComposition 2.0.0
+//WindowCompositionHelper 2.1.0
 #include "Headers.hpp"
 
+void ApplyAcrylic(HWND hwnd, int setting) {
+    HMODULE hUser = GetModuleHandleW(L"user32.dll");
+    if (hUser) {
+        auto SetWindowCompositionAttribute = (pSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+        if (SetWindowCompositionAttribute) {
+            ACCENT_STATE state;
+            DWORD color;
+
+            if (setting == 1) {
+                state = ACCENT_ENABLE_GRADIENT;
+                color = darkMode ? 0xFF202020 : 0xFFF3F3F3;
+            }
+            else {
+                state = ACCENT_ENABLE_ACRYLICBLURBEHIND;
+                color = darkMode ? 0xA6202020 : 0xB3F3F3F3;
+            }
+
+            ACCENT_POLICY policy = { state, 2, color, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
+            SetWindowCompositionAttribute(hwnd, &data);
+        }
+    }
+}
+
+void WindowScale(HWND hwnd) {
+    dpi = GetDpiForWindow(hwnd);
+    width = MulDiv(400, dpi, 96);
+    height = MulDiv(410, dpi, 96);
+
+    RECT rc = { 0, 0, width, height };
+    AdjustWindowRectExForDpi(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, WS_EX_DLGMODALFRAME, dpi);
+    SetWindowPos(hwnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+}
+
 void WindowTheme(HWND hwnd) {
+    DarkModeCheck();
     HMODULE hUxTheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (hUxTheme) {
         typedef void (WINAPI* PfnSetPreferredAppMode)(int appMode);
@@ -15,6 +50,7 @@ void WindowTheme(HWND hwnd) {
         if (SetPreferredAppMode) {
             SetPreferredAppMode(darkMode ? 1 : 0);
         }
+
         if (FlushMenuThemes) {
             FlushMenuThemes();
         }
@@ -30,47 +66,48 @@ void WindowTheme(HWND hwnd) {
 
         MARGINS margins = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(hwnd, &margins);
-    }
-}
-
-void ClearBackground(ID2D1DeviceContext* Context) {
-    if (build >= 22000) {
-        Context->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
     } else {
-        Context->Clear(darkMode ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
+        ApplyAcrylic(hwnd, 4);
     }
 }
 
-HRESULT LoadWindowsLogo(HWND hwnd) {
-    HMODULE hBaseBrd = LoadLibraryExW(L"C:\\Windows\\Branding\\Basebrd\\basebrd.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
-    if (!hBaseBrd) return E_FAIL;
+void LoadWindowsLogo(HWND hwnd) {
+    wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
+    if (GetSystemDirectoryW(systemPath, MAX_PATH) == 0) return;
+    StringCchPrintfW(dllPath, ARRAYSIZE(dllPath), L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
 
-    HRESULT hr = S_OK;
+    HMODULE hBaseBrd = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE);
+    if (!hBaseBrd) return;
 
     if (build >= 22000) {
-        HRSRC hRes = FindResourceW(hBaseBrd, MAKEINTRESOURCEW(2123), L"IMAGE");
-        if (hRes) {
-            DWORD resSize = SizeofResource(hBaseBrd, hRes);
-            void* resData = LockResource(LoadResource(hBaseBrd, hRes));
+        if (hBaseBrd) {
+            HRSRC hRes = FindResourceW(hBaseBrd, MAKEINTRESOURCEW(2123), L"IMAGE");
+            if (hRes) {
+                HGLOBAL hResData = LoadResource(hBaseBrd, hRes);
+                if (hResData) {
+                    LPVOID resData = LockResource(hResData);
+                    DWORD resSize = SizeofResource(hBaseBrd, hRes);
 
-            IWICImagingFactory* pWICFactory = nullptr;
-            IWICStream* pStream = nullptr;
-            IWICBitmapDecoder* pDecoder = nullptr;
-            IWICBitmapFrameDecode* pFrame = nullptr;
-            IWICFormatConverter* pConverter = nullptr;
+                    IWICImagingFactory* pWICFactory = nullptr;
+                    IWICStream* pStream = nullptr;
+                    IWICBitmapDecoder* pDecoder = nullptr;
+                    IWICBitmapFrameDecode* pFrame = nullptr;
+                    IWICFormatConverter* pConverter = nullptr;
 
-            CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWICFactory));
-            pWICFactory->CreateStream(&pStream);
-            pStream->InitializeFromMemory((BYTE*)resData, resSize);
-            pWICFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnLoad, &pDecoder);
-            pDecoder->GetFrame(0, &pFrame);
-            pWICFactory->CreateFormatConverter(&pConverter);
-            pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
-
-            hr = pMainContext->CreateBitmapFromWicBitmap(pConverter, NULL, &pWindowsLogo);
+                    HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWICFactory));
+                    if (SUCCEEDED(hr)) {
+                        pWICFactory->CreateStream(&pStream);
+                        pStream->InitializeFromMemory((BYTE*)resData, resSize);
+                        pWICFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnLoad, &pDecoder);
+                        pDecoder->GetFrame(0, &pFrame);
+                        pWICFactory->CreateFormatConverter(&pConverter);
+                        pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+                        pMainContext->CreateBitmapFromWicBitmap(pConverter, NULL, &pWindowsLogo);
+                    }
+                }
+            }
         }
-    }
-    else {
+    } else {
         HBITMAP hBitmap = (HBITMAP)LoadImageW(hBaseBrd, MAKEINTRESOURCEW(2123), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 
         if (hBitmap) {
@@ -78,9 +115,8 @@ HRESULT LoadWindowsLogo(HWND hwnd) {
             IWICBitmap* pWICBitmap = nullptr;
             IWICFormatConverter* pConverter = nullptr;
 
-            CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWICFactory));
-
-            hr = pWICFactory->CreateBitmapFromHBITMAP(hBitmap, NULL, WICBitmapUseAlpha, &pWICBitmap);
+            HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWICFactory));
+            pWICFactory->CreateBitmapFromHBITMAP(hBitmap, NULL, WICBitmapUseAlpha, &pWICBitmap);
 
             if (SUCCEEDED(hr)) {
                 hr = pWICFactory->CreateFormatConverter(&pConverter);
@@ -93,7 +129,7 @@ HRESULT LoadWindowsLogo(HWND hwnd) {
     }
 
     FreeLibrary(hBaseBrd);
-    return hr;
+    return;
 }
 
 //MainWindow
@@ -143,6 +179,16 @@ HRESULT MainWindowComposition(HWND hwnd) {
 
             if (pDWriteFont && pMTextFormat == nullptr) {
                 pDWriteFont->CreateTextFormat(L"Segoe UI", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.0f, L"en-us", &pMTextFormat);
+
+                wchar_t osName[256], version[256], ntVer[64], userName[256];
+                OSGet(osName, 256);
+                VersionGet(version, 256);
+                NTGet(ntVer, 64);
+                UserGet(userName, 256);
+
+                LPCWSTR rawTemplate = GetResString(TEXT_BODY);
+
+                StringCchPrintfW(bodyText, ARRAYSIZE(bodyText), rawTemplate, osName, version, ntVer, buildString, L'\u00A9', osName, userName);
             }
 
             if (pMBrush == nullptr) {
@@ -191,17 +237,6 @@ void DrawLine() {
 void DrawWindowsText(HWND hwnd) {
     if (!pMainContext || !pMTextFormat || !pMBrush) return;
 
-    wchar_t osName[256], version[256], ntVer[64], userName[UNLEN + 1];
-    OSGet(osName, 256);
-    VersionGet(version, 256);
-    NTGet(ntVer, 64);
-    UserGet(userName, UNLEN + 1);
-
-    LPCWSTR rawTemplate = GetResString(TEXT_BODY);
-
-    wchar_t formattedText[2048];
-    StringCchPrintfW(formattedText, ARRAYSIZE(formattedText), rawTemplate, osName, version, ntVer, buildString, L'\u00A9', osName, userName);
-
     D2D1_SIZE_F rtSize = pMainContext->GetSize();
     float lineY = 100.0f;
     float startPoint = 30.0f;
@@ -209,7 +244,7 @@ void DrawWindowsText(HWND hwnd) {
 
     D2D1_RECT_F textRect = D2D1::RectF(startPoint, lineY, endPoint, rtSize.height);
 
-    pMainContext->DrawText(formattedText, (UINT32)wcslen(formattedText), pMTextFormat.Get(), textRect, pMBrush.Get());
+    pMainContext->DrawText(bodyText, (UINT32)wcslen(bodyText), pMTextFormat.Get(), textRect, pMBrush.Get());
 }
 
 void DrawButton(HWND hwnd) {
