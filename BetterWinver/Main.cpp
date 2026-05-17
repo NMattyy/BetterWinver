@@ -1,4 +1,4 @@
-﻿//BetterWinver 2.1.0
+﻿//BetterWinver 2.1.1
 #include "Headers.hpp"
 
 const int MIN_REQUIRED_BUILD = 17763;
@@ -158,14 +158,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_ENTERSIZEMOVE: {
-            if (build >= 17763 && build < 22000) {
+            if (build >= 17763 && build < 21996) {
                 ApplyAcrylic(hwnd, 1);
             }
             break;
         }
 
         case WM_EXITSIZEMOVE: {
-            if (build >= 17763 && build < 22000) {
+            if (build >= 17763 && build < 21996) {
                 ApplyAcrylic(hwnd, 4);
             }
             break;
@@ -212,6 +212,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBoxW(NULL, GetResString(UNSUPPORTED_VERSION), L"BetterWinver", MB_OK | MB_ICONERROR);
         return 0;
     }
+
     const wchar_t CLASS_NAME[] = L"BetterWinver";
 
     WNDCLASS wc = { };

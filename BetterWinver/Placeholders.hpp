@@ -1,8 +1,8 @@
-//Placeholders 2.1.0
+//Placeholders 2.1.1
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 1
 #define VERSION_PATCH 0
-#define VERSION_STRING L"2.1.0"
+#define VERSION_STRING L"2.1.1"
 
 //SystemMenu
 #define SC_ABOUT 0x0010

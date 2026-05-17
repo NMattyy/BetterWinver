@@ -1,4 +1,4 @@
-//WindowCompositionHelper 2.1.0
+//WindowCompositionHelper 2.1.1
 #include "Headers.hpp"
 
 void ApplyAcrylic(HWND hwnd, int setting) {
@@ -42,10 +42,8 @@ void WindowTheme(HWND hwnd) {
         typedef void (WINAPI* PfnSetPreferredAppMode)(int appMode);
         typedef void (WINAPI* PfnFlushMenuThemes)(void);
 
-        PfnSetPreferredAppMode SetPreferredAppMode =
-            (PfnSetPreferredAppMode)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
-        PfnFlushMenuThemes FlushMenuThemes =
-            (PfnFlushMenuThemes)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(136));
+        PfnSetPreferredAppMode SetPreferredAppMode = (PfnSetPreferredAppMode)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
+        PfnFlushMenuThemes FlushMenuThemes = (PfnFlushMenuThemes)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(136));
 
         if (SetPreferredAppMode) {
             SetPreferredAppMode(darkMode ? 1 : 0);
@@ -60,7 +58,7 @@ void WindowTheme(HWND hwnd) {
 
     DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
 
-    if (build >= 22000) {
+    if (build >= 22621) {
         int backdropType = DWMSBT_MAINWINDOW;
         DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
 
@@ -79,7 +77,7 @@ void LoadWindowsLogo(HWND hwnd) {
     HMODULE hBaseBrd = LoadLibraryExW(dllPath, NULL, LOAD_LIBRARY_AS_DATAFILE);
     if (!hBaseBrd) return;
 
-    if (build >= 22000) {
+    if (build >= 21996) {
         if (hBaseBrd) {
             HRSRC hRes = FindResourceW(hBaseBrd, MAKEINTRESOURCEW(2123), L"IMAGE");
             if (hRes) {
