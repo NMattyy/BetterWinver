@@ -1,4 +1,4 @@
-//InfoGet 2.1.0
+//InfoGet 2.1.2
 #include "Headers.hpp"
 
 LPCWSTR GetResString(UINT id) {
@@ -117,7 +117,7 @@ void UserGet(wchar_t* out, DWORD size) {
         }
     }
 
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
         DWORD bSize = size * sizeof(wchar_t);
         RegQueryValueExW(hKey, L"LastUsedUsername", NULL, NULL, (LPBYTE)out, &bSize);
         RegCloseKey(hKey);

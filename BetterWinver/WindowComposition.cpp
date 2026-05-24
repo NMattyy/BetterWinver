@@ -1,4 +1,4 @@
-//WindowCompositionHelper 2.1.1
+//WindowCompositionHelper 2.1.2
 #include "Headers.hpp"
 
 void ApplyAcrylic(HWND hwnd, int setting) {
@@ -36,12 +36,8 @@ void WindowScale(HWND hwnd) {
 }
 
 void WindowTheme(HWND hwnd) {
-    DarkModeCheck();
     HMODULE hUxTheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (hUxTheme) {
-        typedef void (WINAPI* PfnSetPreferredAppMode)(int appMode);
-        typedef void (WINAPI* PfnFlushMenuThemes)(void);
-
         PfnSetPreferredAppMode SetPreferredAppMode = (PfnSetPreferredAppMode)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
         PfnFlushMenuThemes FlushMenuThemes = (PfnFlushMenuThemes)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(136));
 
@@ -56,7 +52,8 @@ void WindowTheme(HWND hwnd) {
         FreeLibrary(hUxTheme);
     }
 
-    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+    DwmSetWindowAttribute(hwnd, 20, &darkMode, sizeof(darkMode));
+    DwmSetWindowAttribute(hwnd, 19, &darkMode, sizeof(darkMode));
 
     if (build >= 22621) {
         int backdropType = DWMSBT_MAINWINDOW;
