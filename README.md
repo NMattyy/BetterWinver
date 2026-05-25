@@ -25,6 +25,7 @@ If you want, you can customize BetterWinver by forcing some settings like langua
 Boot arguments list:
 - **-forcedarkmode** (to force dark mode)
 - **-forcelightmode** (to force light mode)
+- **-disableacrylic** (to disable acrylic)
 - **-customusername "*username*"** (to change the username that will be shown)
 - **-lang *language*** (to change BetterWinver's language [*en* for English, *it* for Italian)
 
