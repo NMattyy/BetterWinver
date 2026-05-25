@@ -1,4 +1,4 @@
-//StringTable 2.1.0
+//StringTable 2.2.0
 #include "Placeholders.hpp"
 
 //English US
@@ -7,7 +7,7 @@ STRINGTABLE
 BEGIN
 	APP_TITLE "About Windows"
 	UNSUPPORTED_VERSION "This application needs Windows 10 Version 1809 (Build 17763) or newer to work correctly."
-	TEXT_BODY "Microsoft %s %s\nNT Version %s (OS build %s)\n%c Microsoft Corporation. All rights reserved.\n\nThe %s operating system and its user interface are protected by trademark and other pending or existing intellectual property rights in the United States and other countries/regions.\n\n\n\nThis product is licensed to:\n%s"
+	TEXT_BODY "Microsoft %s %s\nNT Version %s (OS build %s)\n%c Microsoft Corporation. All rights reserved.\n\nThe %s operating system and its user interface are protected by trademark and other pending or existing intellectual property rights in the United States and other countries/regions.\n\n\n\nThis product is licensed to:\n%s\n%s"
 	BETTERWINVER_ABOUT "About BetterWinver"
 	BETTERWINVER_VERSION "Version: %s"
 	BETTERWINVER_CREATOR "Created by NMattyy"
@@ -19,7 +19,7 @@ STRINGTABLE
 BEGIN
 	APP_TITLE "Informazioni su Windows"
 	UNSUPPORTED_VERSION "Questa applicazione richiede Windows 10 Versione 1809 (Build 17763) o successiva per funzionare correttamente."
-	TEXT_BODY "Microsoft %s %s\nVersione NT %s (build SO %s)\n%c Microsoft Corporation. Tutti i diritti riservati.\n\nIl sistema operativo %s e la relativa interfaccia utente sono protetti da marchi e da altri diritti di proprietà intellettuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche.\n\n\n\nProdotto concesso in licenza a:\n%s"
+	TEXT_BODY "Microsoft %s %s\nVersione NT %s (build SO %s)\n%c Microsoft Corporation. Tutti i diritti riservati.\n\nIl sistema operativo %s e la relativa interfaccia utente sono protetti da marchi e da altri diritti di proprietà intellettuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche.\n\n\n\nProdotto concesso in licenza a:\n%s\n%s"
 	BETTERWINVER_ABOUT "Informazioni su BetterWinver"
 	BETTERWINVER_VERSION "Versione: %s"
 	BETTERWINVER_CREATOR "Creato da NMattyy"

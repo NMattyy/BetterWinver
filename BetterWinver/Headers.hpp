@@ -1,4 +1,4 @@
-//Headers 2.1.0
+//Headers 2.2.0
 #pragma once
 #include <windows.h>
 #include <wrl/client.h>
@@ -20,6 +20,7 @@ extern int width;
 extern int height;
 
 extern BOOL darkMode;
+extern BOOL trasparency;
 
 extern Microsoft::WRL::ComPtr<ID2D1Factory3> pD2DFactory;
 extern Microsoft::WRL::ComPtr<ID2D1DeviceContext> pMainContext;
@@ -41,14 +42,17 @@ void NTGet(wchar_t* out, DWORD size);
 void OSGet(wchar_t* out, DWORD size);
 void VersionGet(wchar_t* out, DWORD size);
 void UserGet(wchar_t* out, DWORD size);
+void OrganizationGet(wchar_t* out, DWORD size);
 void DarkModeCheck();
+void TrasparencyCheck();
 
 //WindowComposition
-void ApplyAcrylic(HWND hwnd, int setting);
+void ApplyAcrylic(HWND hwnd);
 void WindowScale(HWND hwnd);
 void WindowTheme(HWND hwnd);
 
 HRESULT MainWindowComposition(HWND hwnd);
+void clearBackground();
 void DrawWindowsLogo();
 void DrawLine();
 void DrawWindowsText(HWND hwnd);

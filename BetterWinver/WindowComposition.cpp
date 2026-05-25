@@ -1,7 +1,7 @@
-//WindowCompositionHelper 2.1.2
+//WindowCompositionHelper 2.2.0
 #include "Headers.hpp"
 
-void ApplyAcrylic(HWND hwnd, int setting) {
+void ApplyAcrylic(HWND hwnd) {
     HMODULE hUser = GetModuleHandleW(L"user32.dll");
     if (hUser) {
         auto SetWindowCompositionAttribute = (pSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
@@ -9,13 +9,13 @@ void ApplyAcrylic(HWND hwnd, int setting) {
             ACCENT_STATE state;
             DWORD color;
 
-            if (setting == 1) {
-                state = ACCENT_ENABLE_GRADIENT;
-                color = darkMode ? 0xFF202020 : 0xFFF3F3F3;
-            }
-            else {
+            if (trasparency || build >= 21996) {
                 state = ACCENT_ENABLE_ACRYLICBLURBEHIND;
                 color = darkMode ? 0xA6202020 : 0xB3F3F3F3;
+                
+            } else {
+                state = ACCENT_DISABLED;
+                color = 0x00000000;
             }
 
             ACCENT_POLICY policy = { state, 2, color, 0 };
@@ -54,7 +54,7 @@ void WindowTheme(HWND hwnd) {
 
     DwmSetWindowAttribute(hwnd, 20, &darkMode, sizeof(darkMode));
     DwmSetWindowAttribute(hwnd, 19, &darkMode, sizeof(darkMode));
-
+     
     if (build >= 22621) {
         int backdropType = DWMSBT_MAINWINDOW;
         DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
@@ -62,8 +62,9 @@ void WindowTheme(HWND hwnd) {
         MARGINS margins = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(hwnd, &margins);
     } else {
-        ApplyAcrylic(hwnd, 4);
+        ApplyAcrylic(hwnd); 
     }
+
 }
 
 void LoadWindowsLogo(HWND hwnd) {
@@ -175,15 +176,16 @@ HRESULT MainWindowComposition(HWND hwnd) {
             if (pDWriteFont && pMTextFormat == nullptr) {
                 pDWriteFont->CreateTextFormat(L"Segoe UI", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 12.0f, L"en-us", &pMTextFormat);
 
-                wchar_t osName[256], version[256], ntVer[64], userName[256];
+                wchar_t osName[256], version[256], ntVer[64], userName[256], organizationName[256];
                 OSGet(osName, 256);
                 VersionGet(version, 256);
                 NTGet(ntVer, 64);
                 UserGet(userName, 256);
+                OrganizationGet(organizationName, 256);
 
                 LPCWSTR rawTemplate = GetResString(TEXT_BODY);
 
-                StringCchPrintfW(bodyText, ARRAYSIZE(bodyText), rawTemplate, osName, version, ntVer, buildString, L'\u00A9', osName, userName);
+                StringCchPrintfW(bodyText, ARRAYSIZE(bodyText), rawTemplate, osName, version, ntVer, buildString, L'\u00A9', osName, userName, organizationName);
             }
 
             if (pMBrush == nullptr) {
@@ -193,6 +195,14 @@ HRESULT MainWindowComposition(HWND hwnd) {
             return S_OK;
         }
         return E_FAIL;
+    }
+}
+
+void clearBackground() {
+    if (build >= 21996 || trasparency) {
+        pMainContext->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
+    } else if (build < 21996 && trasparency == FALSE)  {
+        pMainContext->Clear(darkMode ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
     }
 }
 

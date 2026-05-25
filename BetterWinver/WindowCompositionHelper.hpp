@@ -1,12 +1,10 @@
-//WindowCompositionHelper 2.1.2
+//WindowCompositionHelper 2.2.0
+typedef void (WINAPI* PfnSetPreferredAppMode)(int appMode);
+typedef void (WINAPI* PfnFlushMenuThemes)(void);
 
 enum ACCENT_STATE {
     ACCENT_DISABLED = 0,
-    ACCENT_ENABLE_GRADIENT = 1,
-    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-    ACCENT_ENABLE_BLURBEHIND = 3, 
     ACCENT_ENABLE_ACRYLICBLURBEHIND = 4, 
-    ACCENT_INVALID_STATE = 5
 };
 
 struct ACCENT_POLICY {
@@ -23,6 +21,3 @@ struct WINDOWCOMPOSITIONATTRIBDATA {
 };
 
 typedef BOOL(WINAPI* pSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
-
-typedef void (WINAPI* PfnSetPreferredAppMode)(int appMode);
-typedef void (WINAPI* PfnFlushMenuThemes)(void);

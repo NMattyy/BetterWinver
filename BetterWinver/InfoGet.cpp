@@ -1,4 +1,4 @@
-//InfoGet 2.1.2
+//InfoGet 2.2.0
 #include "Headers.hpp"
 
 LPCWSTR GetResString(UINT id) {
@@ -63,7 +63,7 @@ void NTGet(wchar_t* out, DWORD size) {
 
 void OSGet(wchar_t* out, DWORD size) {
     HKEY hKey;
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
         wchar_t buffer[256];
         DWORD bSize = sizeof(buffer);
 
@@ -124,15 +124,40 @@ void UserGet(wchar_t* out, DWORD size) {
     }
 }
 
+void OrganizationGet(wchar_t* out, DWORD size) {
+    HKEY hKey;
+    if (args != nullptr && argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            if (CompareStringOrdinal(args[i], -1, L"-customorganization", -1, TRUE) == CSTR_EQUAL) {
+                if (i + 1 < argc) {
+                    StringCchCopyW(out, size, args[i + 1]);
+                    return;
+                }
+            }
+        }
+    }
+
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
+        DWORD bSize = size * sizeof(wchar_t);
+        LSTATUS status = RegQueryValueExW(hKey, L"RegisteredOrganization", NULL, NULL, (LPBYTE)out, &bSize);
+
+        if (status != ERROR_SUCCESS) {
+            out[0] = L'\0';
+        }
+
+        RegCloseKey(hKey);
+    }
+}
+
 void DarkModeCheck() {
     if (args) {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(args[i], -1, L"-forcedarkmode", -1, TRUE) == CSTR_EQUAL) {
-                darkMode = true;
+                darkMode = TRUE;
                 return;
             }
             else if (CompareStringOrdinal(args[i], -1, L"-forcelightmode", -1, TRUE) == CSTR_EQUAL) {
-                darkMode = false;
+                darkMode = FALSE;
                 return;
             }
         }
@@ -147,4 +172,25 @@ void DarkModeCheck() {
         RegCloseKey(hKey);
     }
     darkMode = (value == 0);
+}
+
+void TrasparencyCheck() {
+    HKEY hKey;
+    DWORD value = 1; //1 On, 0 Off;
+    DWORD valueSize = sizeof(value);
+
+    if (args) {
+        for (int i = 1; i < argc; i++) {
+            if (CompareStringOrdinal(args[i], -1, L"-disableacrylic", -1, TRUE) == CSTR_EQUAL) {
+                trasparency = FALSE;
+                return;
+            }
+        }
+    }
+
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"EnableTransparency", NULL, NULL, (LPBYTE)&value, &valueSize);
+        RegCloseKey(hKey);
+    }
+    trasparency = (value == 1);
 }

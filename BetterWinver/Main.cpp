@@ -1,4 +1,4 @@
-﻿//BetterWinver 2.1.1
+﻿//BetterWinver 2.2.0
 #include "Headers.hpp"
 
 const int MIN_REQUIRED_BUILD = 17763;
@@ -13,6 +13,7 @@ int width;
 int height;
 
 BOOL darkMode;
+BOOL trasparency;
 
 Microsoft::WRL::ComPtr<ID2D1Factory3> pD2DFactory = nullptr;
 Microsoft::WRL::ComPtr<ID2D1DeviceContext> pMainContext = nullptr;
@@ -49,6 +50,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
 
             DarkModeCheck();
+            TrasparencyCheck();
             return 0;
         }
 
@@ -85,7 +87,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (pMainContext) {
                 pMainContext->BeginDraw();
 
-                pMainContext->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
+                clearBackground();
+
                 pMainContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
                 DrawWindowsLogo();
@@ -158,15 +161,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_ENTERSIZEMOVE: {
-            if (build >= 17763 && build < 21996) {
-                ApplyAcrylic(hwnd, 1);
+            if (build < 21996 && trasparency) {
+                trasparency = FALSE;
+                ApplyAcrylic(hwnd);
+                InvalidateRect(hwnd, NULL, TRUE);
             }
             break;
         }
 
         case WM_EXITSIZEMOVE: {
-            if (build >= 17763 && build < 21996) {
-                ApplyAcrylic(hwnd, 4);
+            if (build < 21996) {
+                InvalidateRect(hwnd, NULL, TRUE);
+                TrasparencyCheck();
+                ApplyAcrylic(hwnd);
             }
             break;
         }
@@ -174,6 +181,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_SETTINGCHANGE : {
             MainWindowDestroy();
             DarkModeCheck();
+            TrasparencyCheck();
             WindowTheme(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
