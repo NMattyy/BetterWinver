@@ -1,8 +1,9 @@
-//StringTable 2.2.0
+//StringTable 2.3.0
+#include "windows.h"
 #include "Placeholders.hpp"
 
-//English US
-LANGUAGE 0x09, 0x01
+//English US (Fallback)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
 	APP_TITLE "About Windows"
@@ -14,7 +15,7 @@ BEGIN
 END
 
 //Italian
-LANGUAGE 0x10, 0x01
+LANGUAGE LANG_ITALIAN, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
 	APP_TITLE "Informazioni su Windows"
@@ -23,4 +24,52 @@ BEGIN
 	BETTERWINVER_ABOUT "Informazioni su BetterWinver"
 	BETTERWINVER_VERSION "Versione: %s"
 	BETTERWINVER_CREATOR "Creato da NMattyy"
+END
+
+//French
+LANGUAGE LANG_FRENCH, SUBLANG_NEUTRAL
+STRINGTABLE
+BEGIN
+	APP_TITLE "À propos de Windows"
+	UNSUPPORTED_VERSION "Cette application nécessite Windows 10 version 1809 (build 17763) ou ultérieure pour fonctionner correctement."
+	BETTERWINVER_ABOUT "À propos de BetterWinver"
+	BETTERWINVER_VERSION "Version: %s"
+	TEXT_BODY "Microsoft %s %s\nVersion NT %s (build du système d'exploitation %s)\n%c Microsoft Corporation. Tous droits réservés.\n\nLe système d'exploitation %s et son interface utilisateur sont protégés par une marque et d'autres droits de propriété intellectuelle, existants ou en attente, aux États-Unis et dans d'autres pays/régions.\n\n\n\nCe produit est fourni sous licence à:\n%s\n%s"
+	BETTERWINVER_CREATOR "Créé par NMattyy"
+END
+
+//Spanish
+LANGUAGE LANG_SPANISH, SUBLANG_NEUTRAL
+STRINGTABLE
+BEGIN
+	APP_TITLE "Acerca de Windows"
+	UNSUPPORTED_VERSION "Esta aplicación necesita Windows 10 versión 1809 (compilación 17763) o posterior para funcionar correctamente."
+	BETTERWINVER_ABOUT "Acerca de BetterWinver"
+	BETTERWINVER_VERSION "Versión: %s"
+	TEXT_BODY "Microsoft %s %s\nVersión NT %s (compilación de SO %s)\n%c Microsoft Corporation. Todos los derechos reservados.\n\nEl sistema operativo %s y su interfaz de usuario están protegidos por las leyes de marca comercial y otros derechos de propiedad intelectual actuales y pendientes en los Estados Unidos y otros países o regiones.\n\n\n\nLa licencia de este producto se concede a:\n%s\n%s"
+	BETTERWINVER_CREATOR "Creado por NMattyy"
+END
+
+//German
+LANGUAGE LANG_GERMAN, SUBLANG_NEUTRAL
+STRINGTABLE
+BEGIN
+	APP_TITLE "Info über Windows"
+	UNSUPPORTED_VERSION "Diese Anwendung benötigt Windows 10 Version 1809 (Build 17763) oder neuer, um korrekt zu funktionieren."
+	TEXT_BODY "Microsoft %s %s\nNT-Version %s (Build %s)\n%c Microsoft Corporation. Alle Rechte vorbehalten.\n\nDas Betriebssystem %s und die zugehörige Benutzeroberfläche sind durch Marken- und andere rechtsabhängige bzw. bestehende gewerbliche Schutz- und Urheberrechte in den Vereinigten Staaten und anderen Ländern geshützt.\n\n\nDieses Produkt ist unter den lizenziert für:\n%s\n%s"
+	BETTERWINVER_ABOUT "Info über BetterWinver"
+	BETTERWINVER_VERSION "Version: %s"
+	BETTERWINVER_CREATOR "Erstellt von NMattyy"
+END
+
+//Portuguese
+LANGUAGE LANG_PORTUGUESE, SUBLANG_NEUTRAL
+STRINGTABLE
+BEGIN
+	APP_TITLE "Acerca do Windows"
+	UNSUPPORTED_VERSION "Esta aplicação requer o Windows 10 versão 1809 (Build 17763) ou posterior para funcionar corretamente."
+	TEXT_BODY "Microsoft %s %s\nVersão NT %s (Compilação do SO %s)\n%c Microsoft Corporation. Todos os direitos reservados.\n\nO sistema operativo %s e a sua interface de utilizador estão protegidos por marca registada e outros direitos de propriedade intelectual pendentes ou existentes nos Estados Unidos e noutros países/regiões.\n\n\n\nEste produto está licenciado para:\n%s\n%s"
+	BETTERWINVER_ABOUT "Acerca do BetterWinver"
+	BETTERWINVER_VERSION "Versão: %s"
+	BETTERWINVER_CREATOR "Criado por NMattyy"
 END

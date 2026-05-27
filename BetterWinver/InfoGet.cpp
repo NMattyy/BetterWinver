@@ -1,4 +1,4 @@
-//InfoGet 2.2.0
+//InfoGet 2.3.0
 #include "Headers.hpp"
 
 LPCWSTR GetResString(UINT id) {
@@ -32,11 +32,18 @@ void ManualLanguageGet() {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(args[i], -1, L"-lang", -1, TRUE) == CSTR_EQUAL) {
                 if (i + 1 < argc) {
-                    if (CompareStringOrdinal(args[i + 1], -1, L"it", -1, TRUE) == CSTR_EQUAL) {
-                        SetThreadUILanguage(MAKELANGID(LANG_ITALIAN, SUBLANG_ITALIAN));
-                    }
-                    else if (CompareStringOrdinal(args[i + 1], -1, L"en", -1, TRUE) == CSTR_EQUAL) {
-                        SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+                    if (CompareStringOrdinal(args[i + 1], -1, L"en", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_NEUTRAL));
+                    } else if (CompareStringOrdinal(args[i + 1], -1, L"it", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_ITALIAN, SUBLANG_NEUTRAL));
+                    } else if (CompareStringOrdinal(args[i + 1], -1, L"fr", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_FRENCH, SUBLANG_NEUTRAL));
+                    } else if (CompareStringOrdinal(args[i + 1], -1, L"es", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_SPANISH, SUBLANG_NEUTRAL));
+                    } else if (CompareStringOrdinal(args[i + 1], -1, L"de", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_GERMAN, SUBLANG_NEUTRAL));
+                    } else if (CompareStringOrdinal(args[i + 1], -1, L"pt", -1, TRUE) == CSTR_EQUAL) {
+                        SetThreadUILanguage(MAKELANGID(LANG_PORTUGUESE, SUBLANG_NEUTRAL));
                     }
                 }
             }
@@ -106,6 +113,8 @@ void VersionGet(wchar_t* out, DWORD size) {
 
 void UserGet(wchar_t* out, DWORD size) {
     HKEY hKey;
+    out[0] = L'\0';
+
     if (args != nullptr && argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(args[i], -1, L"-customusername", -1, TRUE) == CSTR_EQUAL) {
@@ -117,15 +126,21 @@ void UserGet(wchar_t* out, DWORD size) {
         }
     }
 
+    DWORD bSize = size * sizeof(wchar_t);
+
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
-        DWORD bSize = size * sizeof(wchar_t);
         RegQueryValueExW(hKey, L"LastUsedUsername", NULL, NULL, (LPBYTE)out, &bSize);
+        RegCloseKey(hKey);
+    } else if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"RegisteredOwner", NULL, NULL, (LPBYTE)out, &bSize);
         RegCloseKey(hKey);
     }
 }
 
 void OrganizationGet(wchar_t* out, DWORD size) {
     HKEY hKey;
+    out[0] = L'\0';
+
     if (args != nullptr && argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (CompareStringOrdinal(args[i], -1, L"-customorganization", -1, TRUE) == CSTR_EQUAL) {
@@ -139,12 +154,7 @@ void OrganizationGet(wchar_t* out, DWORD size) {
 
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
         DWORD bSize = size * sizeof(wchar_t);
-        LSTATUS status = RegQueryValueExW(hKey, L"RegisteredOrganization", NULL, NULL, (LPBYTE)out, &bSize);
-
-        if (status != ERROR_SUCCESS) {
-            out[0] = L'\0';
-        }
-
+        RegQueryValueExW(hKey, L"RegisteredOrganization", NULL, NULL, (LPBYTE)out, &bSize);
         RegCloseKey(hKey);
     }
 }
