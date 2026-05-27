@@ -1,4 +1,4 @@
-//StringTable 2.3.0
+Ôªø//StringTable 2.3.0
 #include "windows.h"
 #include "Placeholders.hpp"
 
@@ -20,7 +20,7 @@ STRINGTABLE
 BEGIN
 	APP_TITLE "Informazioni su Windows"
 	UNSUPPORTED_VERSION "Questa applicazione richiede Windows 10 Versione 1809 (Build 17763) o successiva per funzionare correttamente."
-	TEXT_BODY "Microsoft %s %s\nVersione NT %s (build SO %s)\n%c Microsoft Corporation. Tutti i diritti riservati.\n\nIl sistema operativo %s e la relativa interfaccia utente sono protetti da marchi e da altri diritti di propriet‡ intellettuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche.\n\n\n\nProdotto concesso in licenza a:\n%s\n%s"
+	TEXT_BODY "Microsoft %s %s\nVersione NT %s (build SO %s)\n%c Microsoft Corporation. Tutti i diritti riservati.\n\nIl sistema operativo %s e la relativa interfaccia utente sono protetti da marchi e da altri diritti di propriet√† intellettuale in corso di registrazione o registrati negli Stati Uniti e/o negli altri paesi o aree geografiche.\n\n\n\nProdotto concesso in licenza a:\n%s\n%s"
 	BETTERWINVER_ABOUT "Informazioni su BetterWinver"
 	BETTERWINVER_VERSION "Versione: %s"
 	BETTERWINVER_CREATOR "Creato da NMattyy"
@@ -30,12 +30,12 @@ END
 LANGUAGE LANG_FRENCH, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
-	APP_TITLE "¿ propos de Windows"
-	UNSUPPORTED_VERSION "Cette application nÈcessite Windows 10 version 1809 (build 17763) ou ultÈrieure pour fonctionner correctement."
-	BETTERWINVER_ABOUT "¿ propos de BetterWinver"
+	APP_TITLE "√Ä propos de Windows"
+	UNSUPPORTED_VERSION "Cette application n√©cessite Windows 10 version 1809 (build 17763) ou ult√©rieure pour fonctionner correctement."
+	BETTERWINVER_ABOUT "√Ä propos de BetterWinver"
 	BETTERWINVER_VERSION "Version: %s"
-	TEXT_BODY "Microsoft %s %s\nVersion NT %s (build du systËme d'exploitation %s)\n%c Microsoft Corporation. Tous droits rÈservÈs.\n\nLe systËme d'exploitation %s et son interface utilisateur sont protÈgÈs par une marque et d'autres droits de propriÈtÈ intellectuelle, existants ou en attente, aux …tats-Unis et dans d'autres pays/rÈgions.\n\n\n\nCe produit est fourni sous licence ‡:\n%s\n%s"
-	BETTERWINVER_CREATOR "CrÈÈ par NMattyy"
+	TEXT_BODY "Microsoft %s %s\nVersion NT %s (build du syst√®me d'exploitation %s)\n%c Microsoft Corporation. Tous droits r√©serv√©s.\n\nLe syst√®me d'exploitation %s et son interface utilisateur sont prot√©g√©s par une marque et d'autres droits de propri√©t√© intellectuelle, existants ou en attente, aux √âtats-Unis et dans d'autres pays/r√©gions.\n\n\n\nCe produit est fourni sous licence √†:\n%s\n%s"
+	BETTERWINVER_CREATOR "Cr√©√© par NMattyy"
 END
 
 //Spanish
@@ -43,10 +43,10 @@ LANGUAGE LANG_SPANISH, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
 	APP_TITLE "Acerca de Windows"
-	UNSUPPORTED_VERSION "Esta aplicaciÛn necesita Windows 10 versiÛn 1809 (compilaciÛn 17763) o posterior para funcionar correctamente."
+	UNSUPPORTED_VERSION "Esta aplicaci√≥n necesita Windows 10 versi√≥n 1809 (compilaci√≥n 17763) o posterior para funcionar correctamente."
 	BETTERWINVER_ABOUT "Acerca de BetterWinver"
-	BETTERWINVER_VERSION "VersiÛn: %s"
-	TEXT_BODY "Microsoft %s %s\nVersiÛn NT %s (compilaciÛn de SO %s)\n%c Microsoft Corporation. Todos los derechos reservados.\n\nEl sistema operativo %s y su interfaz de usuario est·n protegidos por las leyes de marca comercial y otros derechos de propiedad intelectual actuales y pendientes en los Estados Unidos y otros paÌses o regiones.\n\n\n\nLa licencia de este producto se concede a:\n%s\n%s"
+	BETTERWINVER_VERSION "Versi√≥n: %s"
+	TEXT_BODY "Microsoft %s %s\nVersi√≥n NT %s (compilaci√≥n de SO %s)\n%c Microsoft Corporation. Todos los derechos reservados.\n\nEl sistema operativo %s y su interfaz de usuario est√°n protegidos por las leyes de marca comercial y otros derechos de propiedad intelectual actuales y pendientes en los Estados Unidos y otros pa√≠ses o regiones.\n\n\n\nLa licencia de este producto se concede a:\n%s\n%s"
 	BETTERWINVER_CREATOR "Creado por NMattyy"
 END
 
@@ -54,10 +54,10 @@ END
 LANGUAGE LANG_GERMAN, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
-	APP_TITLE "Info ¸ber Windows"
-	UNSUPPORTED_VERSION "Diese Anwendung benˆtigt Windows 10 Version 1809 (Build 17763) oder neuer, um korrekt zu funktionieren."
-	TEXT_BODY "Microsoft %s %s\nNT-Version %s (Build %s)\n%c Microsoft Corporation. Alle Rechte vorbehalten.\n\nDas Betriebssystem %s und die zugehˆrige Benutzeroberfl‰che sind durch Marken- und andere rechtsabh‰ngige bzw. bestehende gewerbliche Schutz- und Urheberrechte in den Vereinigten Staaten und anderen L‰ndern gesh¸tzt.\n\n\nDieses Produkt ist unter den lizenziert f¸r:\n%s\n%s"
-	BETTERWINVER_ABOUT "Info ¸ber BetterWinver"
+	APP_TITLE "Info √ºber Windows"
+	UNSUPPORTED_VERSION "Diese Anwendung ben√∂tigt Windows 10 Version 1809 (Build 17763) oder neuer, um korrekt zu funktionieren."
+	TEXT_BODY "Microsoft %s %s\nNT-Version %s (Build %s)\n%c Microsoft Corporation. Alle Rechte vorbehalten.\n\nDas Betriebssystem %s und die zugeh√∂rige Benutzeroberfl√§che sind durch Marken- und andere rechtsabh√§ngige bzw. bestehende gewerbliche Schutz- und Urheberrechte in den Vereinigten Staaten und anderen L√§ndern gesh√ºtzt.\n\n\nDieses Produkt ist unter den lizenziert f√ºr:\n%s\n%s"
+	BETTERWINVER_ABOUT "Info √ºber BetterWinver"
 	BETTERWINVER_VERSION "Version: %s"
 	BETTERWINVER_CREATOR "Erstellt von NMattyy"
 END
@@ -67,9 +67,9 @@ LANGUAGE LANG_PORTUGUESE, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
 	APP_TITLE "Acerca do Windows"
-	UNSUPPORTED_VERSION "Esta aplicaÁ„o requer o Windows 10 vers„o 1809 (Build 17763) ou posterior para funcionar corretamente."
-	TEXT_BODY "Microsoft %s %s\nVers„o NT %s (CompilaÁ„o do SO %s)\n%c Microsoft Corporation. Todos os direitos reservados.\n\nO sistema operativo %s e a sua interface de utilizador est„o protegidos por marca registada e outros direitos de propriedade intelectual pendentes ou existentes nos Estados Unidos e noutros paÌses/regiıes.\n\n\n\nEste produto est· licenciado para:\n%s\n%s"
+	UNSUPPORTED_VERSION "Esta aplica√ß√£o requer o Windows 10 vers√£o 1809 (Build 17763) ou posterior para funcionar corretamente."
+	TEXT_BODY "Microsoft %s %s\nVers√£o NT %s (Compila√ß√£o do SO %s)\n%c Microsoft Corporation. Todos os direitos reservados.\n\nO sistema operativo %s e a sua interface de utilizador est√£o protegidos por marca registada e outros direitos de propriedade intelectual pendentes ou existentes nos Estados Unidos e noutros pa√≠ses/regi√µes.\n\n\n\nEste produto est√° licenciado para:\n%s\n%s"
 	BETTERWINVER_ABOUT "Acerca do BetterWinver"
-	BETTERWINVER_VERSION "Vers„o: %s"
+	BETTERWINVER_VERSION "Vers√£o: %s"
 	BETTERWINVER_CREATOR "Criado por NMattyy"
 END
