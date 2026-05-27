@@ -1,10 +1,10 @@
 # BetterWinver
 > [!Warning]
-> This application has been made only for educational purposes using in part Gemini AI assistant to let me learn C++ and Windows's API better.
+> This application has been made only as a training and just for educational purposes.
 
-| BetterWinver | Preview |
+| BetterWinver | Logo |
 | :--- | :---: |
-| BetterWinver is an application written in c++ for Windows 10 1809 (Build 17763) x64 & ARM64 and newer (Designed for Windows 11) that aims to recreate "About Windows" (Winver) of Microsoft Windows by upgrading its graphics, by adding dark theme support or Acrylic and Mica (Build 22621+) background effects, and its functionality, by using more modern API like Direct2D v3 as render engine. | <img src="https://github.com/NMattyy/BetterWinver/blob/main/Preview/Windows 11.png?raw=true" width="400"> |
+| BetterWinver is an application written in c++ for Windows 10 1809 (Build 17763) x64 & ARM64 and newer (Designed for Windows 11) that aims to recreate "About Windows" (Winver) of Microsoft Windows by upgrading its graphics, by adding dark theme support or Acrylic (Build <22621) and Mica (Build 22621+) background effects, and its functionality, by using more modern API like Direct2D v3 as render engine. | <img src="https://raw.githubusercontent.com/NMattyy/BetterWinver/refs/heads/main/Preview/BetterWinver%20logo.png" width="400"> |
 
 ## Usage
 Since version 1.8.2, BetterWinver comes with an installer or a portable .exe file. Either way, to use the application, you have to install the certificate that comes with every release of the app (just the first time)
