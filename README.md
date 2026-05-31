@@ -27,7 +27,7 @@ Boot arguments list:
 - **-forcelightmode** (to force light mode)
 - **-disableacrylic** (to disable acrylic)
 - **-customusername "*username*"** (to change the username that will be shown)
-- **-customorganization "*organization*"** (to change the username that will be shown)
+- **-customorganization "*organization*"** (to change the organization that will be shown)
 - **-lang *language*** (to change BetterWinver's language [*en* for English, *it* for Italian, *fr* for French, *es* for Spanish, *de* for German and *pt* for Portuguese)
 
 ## ℹ️ Credits
