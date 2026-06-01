@@ -1,7 +1,7 @@
-//WindowCompositionHelper 2.2.0
+//WindowCompositionHelper 2.3.1
 #include "Headers.hpp"
 
-void ApplyAcrylic(HWND hwnd) {
+void ApplyOldAcrylic() {
     HMODULE hUser = GetModuleHandleW(L"user32.dll");
     if (hUser) {
         auto SetWindowCompositionAttribute = (pSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
@@ -25,7 +25,7 @@ void ApplyAcrylic(HWND hwnd) {
     }
 }
 
-void WindowScale(HWND hwnd) {
+void WindowScale() {
     dpi = GetDpiForWindow(hwnd);
     width = MulDiv(400, dpi, 96);
     height = MulDiv(410, dpi, 96);
@@ -35,7 +35,7 @@ void WindowScale(HWND hwnd) {
     SetWindowPos(hwnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 }
 
-void WindowTheme(HWND hwnd) {
+void WindowTheme() {
     HMODULE hUxTheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (hUxTheme) {
         PfnSetPreferredAppMode SetPreferredAppMode = (PfnSetPreferredAppMode)GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
@@ -56,18 +56,18 @@ void WindowTheme(HWND hwnd) {
     DwmSetWindowAttribute(hwnd, 19, &darkMode, sizeof(darkMode));
      
     if (build >= 22621) {
-        int backdropType = DWMSBT_MAINWINDOW;
-        DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+        int backdropType = 2;
+        DwmSetWindowAttribute(hwnd, 38, &backdropType, sizeof(backdropType));
 
         MARGINS margins = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(hwnd, &margins);
     } else {
-        ApplyAcrylic(hwnd); 
+        ApplyOldAcrylic(); 
     }
 
 }
 
-void LoadWindowsLogo(HWND hwnd) {
+void LoadWindowsLogo() {
     wchar_t systemPath[MAX_PATH], dllPath[MAX_PATH];
     if (GetSystemDirectoryW(systemPath, MAX_PATH) == 0) return;
     StringCchPrintfW(dllPath, ARRAYSIZE(dllPath), L"%s\\..\\Branding\\Basebrd\\basebrd.dll", systemPath);
@@ -129,7 +129,7 @@ void LoadWindowsLogo(HWND hwnd) {
 }
 
 //MainWindow
-HRESULT MainWindowComposition(HWND hwnd) {
+HRESULT MainWindowComposition() {
     if (pD2DFactory == nullptr) {
         D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), (void**)&pD2DFactory);
     }
@@ -162,7 +162,7 @@ HRESULT MainWindowComposition(HWND hwnd) {
             pMainContext->SetDpi(dpi, dpi);
 
             if (!pWindowsLogo) {
-                LoadWindowsLogo(hwnd);
+                LoadWindowsLogo();
             }
 
             if (pMLineBrush == nullptr) {
@@ -198,12 +198,12 @@ HRESULT MainWindowComposition(HWND hwnd) {
     }
 }
 
-void clearBackground() {
+void ClearBackground() {
     if (build >= 21996 || trasparency) {
         pMainContext->Clear(D2D1::ColorF(0, 0, 0, 0.0f));
     } else if (build < 21996 && trasparency == FALSE)  {
         pMainContext->Clear(darkMode ? D2D1::ColorF(0.12f, 0.12f, 0.12f) : D2D1::ColorF(D2D1::ColorF::White));
-    }
+    } 
 }
 
 void DrawWindowsLogo() {
@@ -239,7 +239,7 @@ void DrawLine() {
     pMainContext->DrawLine(startPoint, endPoint, pMLineBrush.Get(), 0.8f);
 }
 
-void DrawWindowsText(HWND hwnd) {
+void DrawWindowsText() {
     if (!pMainContext || !pMTextFormat || !pMBrush) return;
 
     D2D1_SIZE_F rtSize = pMainContext->GetSize();
@@ -252,23 +252,23 @@ void DrawWindowsText(HWND hwnd) {
     pMainContext->DrawText(bodyText, (UINT32)wcslen(bodyText), pMTextFormat.Get(), textRect, pMBrush.Get());
 }
 
-void DrawButton(HWND hwnd) {
+void DrawButton() {
     if (!pMainContext || !pMBrush || !pMTextFormat) return;
 
     D2D1_SIZE_F rtSize = pMainContext->GetSize();
 
-    float width = 75.0f;
-    float height = 24.0f;
-    float margin = 30.0f;
+    btnW = 75.0f;
+    btnH = 24.0f;
+    btnMargin = 30.0f;
 
-    float x = rtSize.width - width - margin;
-    float y = rtSize.height - height - margin;
+    float x = rtSize.width - btnW - btnMargin;
+    float y = rtSize.height - btnH - btnMargin;
     D2D1_RECT_F rect = D2D1::RectF(x, y, x + 75.0f, y + 24.0f);
     D2D1_ROUNDED_RECT roundedRect = D2D1::RoundedRect(rect, 4.0f, 4.0f);
 
     D2D1_COLOR_F bgColor = darkMode ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f) : D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.05f);
-    if (buttonPressed) bgColor.a = 0.3f;
-    else if (buttonHovered) bgColor.a = 0.2f;
+    if (btnPressed) bgColor.a = 0.3f;
+    else if (btnHovered) bgColor.a = 0.2f;
 
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> pBtnBrush;
     pMainContext->CreateSolidColorBrush(bgColor, &pBtnBrush);

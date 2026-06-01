@@ -1,10 +1,10 @@
-//Placeholders 2.3.0
+//Placeholders 2.3.1
 
 //Metadata
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 3
-#define VERSION_PATCH 0
-#define VERSION_STRING L"2.3.0"
+#define VERSION_PATCH 1
+#define VERSION_STRING L"2.3.1"
 #define IDI_ICON1 100
 
 //SystemMenu

@@ -1,7 +1,9 @@
-﻿//BetterWinver 2.2.0
+﻿//BetterWinver 2.3.1
 #include "Headers.hpp"
 
 const int MIN_REQUIRED_BUILD = 17763;
+
+HWND hwnd;
 
 LPWSTR* args = nullptr;
 wchar_t buildString[64];
@@ -24,8 +26,11 @@ Microsoft::WRL::ComPtr<IDWriteTextFormat> pMTextFormat = nullptr;
 Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> pMBrush = nullptr;
 wchar_t bodyText[2048];
 
-bool buttonHovered = false;
-bool buttonPressed = false;
+float btnW;
+float btnH;
+float btnMargin;
+bool btnHovered = false;
+bool btnPressed = false;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -77,24 +82,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             return TRUE;
         }
 
-        case WM_ERASEBKGND : {
-            return 1;
-        }
-
         case WM_PAINT : {
-            MainWindowComposition(hwnd);
+            MainWindowComposition();
 
             if (pMainContext) {
                 pMainContext->BeginDraw();
 
-                clearBackground();
+                ClearBackground();
 
                 pMainContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
                 DrawWindowsLogo();
                 DrawLine();
-                DrawWindowsText(hwnd);
-                DrawButton(hwnd);
+                DrawWindowsText();
+                DrawButton();
 
                 HRESULT hr = pMainContext->EndDraw();
                 if (hr == D2DERR_RECREATE_TARGET) {
@@ -117,17 +118,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             D2D1_SIZE_F rtSize = pMainContext->GetSize();
 
-            float btnW = 75.0f;
-            float btnH = 24.0f;
-            float margin = 30.0f;
-
-            float btnX = rtSize.width - btnW - margin;
-            float btnY = rtSize.height - btnH - margin;
+            float btnX = rtSize.width - btnW - btnMargin;
+            float btnY = rtSize.height - btnH - btnMargin;
 
             bool hoveredNow = (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH);
 
-            if (hoveredNow != buttonHovered) {
-                buttonHovered = hoveredNow;
+            if (hoveredNow != btnHovered) {
+                btnHovered = hoveredNow;
                 InvalidateRect(hwnd, NULL, FALSE); 
 
                 TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, hwnd, 0 };
@@ -137,25 +134,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_MOUSELEAVE: {
-            buttonHovered = false;
-            buttonPressed = false;
+            btnHovered = false;
+            btnPressed = false;
             InvalidateRect(hwnd, NULL, FALSE);
             return 0;
         }
 
         case WM_LBUTTONDOWN: {
-            if (buttonHovered) {
-                buttonPressed = true;
+            if (btnHovered) {
+                btnPressed = true;
                 InvalidateRect(hwnd, NULL, FALSE);
             }
             return 0;
         }
 
         case WM_LBUTTONUP: {
-            if (buttonPressed && buttonHovered) {
+            if (btnPressed && btnHovered) {
                 SendMessage(hwnd, WM_CLOSE, 0, 0);
             }
-            buttonPressed = false;
+            btnPressed = false;
             InvalidateRect(hwnd, NULL, FALSE);
             return 0;
         }
@@ -163,7 +160,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_ENTERSIZEMOVE: {
             if (build < 21996 && trasparency) {
                 trasparency = FALSE;
-                ApplyAcrylic(hwnd);
+                ApplyOldAcrylic();
                 InvalidateRect(hwnd, NULL, TRUE);
             }
             break;
@@ -173,7 +170,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (build < 21996) {
                 InvalidateRect(hwnd, NULL, TRUE);
                 TrasparencyCheck();
-                ApplyAcrylic(hwnd);
+                ApplyOldAcrylic();
             }
             break;
         }
@@ -182,14 +179,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             MainWindowDestroy();
             DarkModeCheck();
             TrasparencyCheck();
-            WindowTheme(hwnd);
+            WindowTheme();
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
         }
 
         case WM_DPICHANGED : {
             MainWindowDestroy();
-            WindowScale(hwnd);
+            WindowScale();
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
         }
@@ -232,19 +229,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, CLASS_NAME, GetResString(APP_TITLE), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, hInstance, NULL);
+    hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, CLASS_NAME, GetResString(APP_TITLE), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, hInstance, NULL);
 
     if (!hwnd) return 0;
 
-    WindowScale(hwnd);
+    WindowScale();
 
-    if (SUCCEEDED(MainWindowComposition(hwnd))) {
+    if (SUCCEEDED(MainWindowComposition())) {
         ValidateRect(hwnd, NULL);
     }
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
-    WindowTheme(hwnd);
+    WindowTheme();
 
     SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
     SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);

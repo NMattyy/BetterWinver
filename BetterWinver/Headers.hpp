@@ -1,14 +1,22 @@
-//Headers 2.2.0
+//Headers 2.3.1
 #pragma once
+#pragma comment (lib, "dwmapi.lib")
+#pragma comment (lib, "UxTheme.lib")
+#pragma comment (lib, "d2d1.lib")
+#pragma comment (lib, "windowscodecs.lib")
+#pragma comment (lib, "dwrite.lib")
+
 #include <windows.h>
 #include <wrl/client.h>
-#include <d2d1_3.h>
-#include <dwrite.h>
 #include <dwmapi.h>
+#include <d2d1_3.h>
 #include <wincodec.h>
 #include <strsafe.h>
+#include <dwrite.h>
 #include "Placeholders.hpp"
 #include "WindowCompositionHelper.hpp"
+
+extern HWND hwnd;
 
 extern LPWSTR* args;
 extern int argc;
@@ -31,8 +39,11 @@ extern Microsoft::WRL::ComPtr<IDWriteTextFormat> pMTextFormat;
 extern Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> pMBrush;
 extern wchar_t bodyText[2048];
 
-extern bool buttonHovered;
-extern bool buttonPressed;
+extern float btnW;
+extern float btnH;
+extern float btnMargin;
+extern bool btnHovered;
+extern bool btnPressed;
 
 //InfoGet
 LPCWSTR GetResString(UINT id);
@@ -47,14 +58,14 @@ void DarkModeCheck();
 void TrasparencyCheck();
 
 //WindowComposition
-void ApplyAcrylic(HWND hwnd);
-void WindowScale(HWND hwnd);
-void WindowTheme(HWND hwnd);
+void ApplyOldAcrylic();
+void WindowScale();
+void WindowTheme();
 
-HRESULT MainWindowComposition(HWND hwnd);
-void clearBackground();
+HRESULT MainWindowComposition();
+void ClearBackground();
 void DrawWindowsLogo();
 void DrawLine();
-void DrawWindowsText(HWND hwnd);
-void DrawButton(HWND hwnd);
+void DrawWindowsText();
+void DrawButton();
 void MainWindowDestroy();

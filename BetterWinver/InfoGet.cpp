@@ -1,4 +1,4 @@
-//InfoGet 2.3.0
+//InfoGet 2.3.1
 #include "Headers.hpp"
 
 LPCWSTR GetResString(UINT id) {
@@ -128,8 +128,8 @@ void UserGet(wchar_t* out, DWORD size) {
 
     DWORD bSize = size * sizeof(wchar_t);
 
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, L"LastUsedUsername", NULL, NULL, (LPBYTE)out, &bSize);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Volatile Environment", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"USERNAME", NULL, NULL, (LPBYTE)out, &bSize);
         RegCloseKey(hKey);
     } else if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
         RegQueryValueExW(hKey, L"RegisteredOwner", NULL, NULL, (LPBYTE)out, &bSize);
@@ -185,22 +185,24 @@ void DarkModeCheck() {
 }
 
 void TrasparencyCheck() {
-    HKEY hKey;
-    DWORD value = 1; //1 On, 0 Off;
-    DWORD valueSize = sizeof(value);
+    if (build < 21996) {
+        HKEY hKey;
+        DWORD value = 1; //1 On, 0 Off;
+        DWORD valueSize = sizeof(value);
 
-    if (args) {
-        for (int i = 1; i < argc; i++) {
-            if (CompareStringOrdinal(args[i], -1, L"-disableacrylic", -1, TRUE) == CSTR_EQUAL) {
-                trasparency = FALSE;
-                return;
+        if (args) {
+            for (int i = 1; i < argc; i++) {
+                if (CompareStringOrdinal(args[i], -1, L"-disableacrylic", -1, TRUE) == CSTR_EQUAL) {
+                    trasparency = FALSE;
+                    return;
+                }
             }
         }
-    }
 
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, L"EnableTransparency", NULL, NULL, (LPBYTE)&value, &valueSize);
-        RegCloseKey(hKey);
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            RegQueryValueExW(hKey, L"EnableTransparency", NULL, NULL, (LPBYTE)&value, &valueSize);
+            RegCloseKey(hKey);
+        }
+        trasparency = (value == 1);
     }
-    trasparency = (value == 1);
 }
